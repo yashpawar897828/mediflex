@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
-// Sample inventory data for demonstration
 const initialInventory = [
   { id: 1, name: "Paracetamol 500mg", expiry: "2025-06-30", batch: "PCM2023-45", price: 5.99, stock: 250 },
   { id: 2, name: "Amoxicillin 250mg", expiry: "2024-11-15", batch: "AMX2022-78", price: 12.50, stock: 120 },
@@ -142,14 +140,16 @@ const Inventory = () => {
         </Button>
       </div>
 
-      <div className="flex w-full max-w-sm items-center space-x-2 mb-6">
-        <Input
-          placeholder="Search products..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full"
-          icon={<Search className="h-4 w-4" />}
-        />
+      <div className="flex w-full max-w-sm items-center space-x-2 mb-6 relative">
+        <div className="relative w-full">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search products..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10"
+          />
+        </div>
       </div>
 
       {(isAddingProduct || editingProduct) && (
