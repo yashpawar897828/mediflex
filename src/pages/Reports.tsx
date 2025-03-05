@@ -1,7 +1,7 @@
 
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, FileSpreadsheet, FilePdf, Download, Calendar, TrendingUp, TrendingDown } from "lucide-react";
+import { BarChart, FileSpreadsheet, FileText, Download, Calendar, TrendingUp, TrendingDown } from "lucide-react";
 
 const Reports = () => {
   const reportTypes = [
@@ -32,7 +32,7 @@ const Reports = () => {
     {
       title: "PDF Reports",
       description: "Generate professional PDF reports for sharing and printing",
-      icon: <FilePdf className="h-8 w-8" />,
+      icon: <FileText className="h-8 w-8" />,
       link: "/pdf-reports"
     },
     {
