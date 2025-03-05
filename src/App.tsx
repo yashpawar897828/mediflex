@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import BarcodeScanner from "./pages/BarcodeScanner";
 import OcrScanner from "./pages/OcrScanner";
 import Reports from "./pages/Reports";
+import Inventory from "./pages/Inventory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,10 +43,7 @@ const App = () => (
           } />
           <Route path="/inventory" element={
             <MainLayout>
-              <div className="p-4">
-                <h1 className="text-3xl font-bold">Inventory Management</h1>
-                <p className="text-muted-foreground">Coming soon...</p>
-              </div>
+              <Inventory />
             </MainLayout>
           } />
           <Route path="/buyers" element={
