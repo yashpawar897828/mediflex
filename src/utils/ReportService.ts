@@ -6,6 +6,15 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import autoTable from 'jspdf-autotable';
 
+// Define type for report metadata
+export interface ReportMetadata {
+  id: number;
+  name: string;
+  type: 'excel' | 'pdf';
+  date: string;
+  path: string;
+}
+
 // Sample data for reports
 export const getSampleData = (type: string) => {
   const today = new Date();
@@ -77,7 +86,7 @@ export const exportToExcel = (data: any[], fileName: string) => {
 };
 
 // Export to PDF
-export const exportToPDF = (data: any[], fileName: string, title: string) => {
+export const exportToPDF = (data: any[], fileName: string, title: string): ReportMetadata => {
   const doc = new jsPDF();
   
   // Add title
@@ -115,7 +124,7 @@ export const exportToPDF = (data: any[], fileName: string, title: string) => {
 };
 
 // Generate monthly report
-export const generateMonthlyReport = (format: 'excel' | 'pdf') => {
+export const generateMonthlyReport = (format: 'excel' | 'pdf'): ReportMetadata => {
   const today = new Date();
   const currentMonth = today.toLocaleString('default', { month: 'long' });
   const data = getSampleData('sales');
@@ -135,7 +144,7 @@ export const generateMonthlyReport = (format: 'excel' | 'pdf') => {
 };
 
 // Generate daily report
-export const generateDailyReport = (format: 'excel' | 'pdf') => {
+export const generateDailyReport = (format: 'excel' | 'pdf'): ReportMetadata => {
   const today = new Date();
   const formattedDate = today.toLocaleDateString().replace(/\//g, '-');
   
@@ -166,7 +175,7 @@ export const generateDailyReport = (format: 'excel' | 'pdf') => {
 export const generateCustomReport = (
   reportType: 'sales' | 'purchase' | 'inventory',
   format: 'excel' | 'pdf'
-) => {
+): ReportMetadata => {
   const data = getSampleData(reportType);
   const today = new Date();
   const formattedDate = today.toLocaleDateString().replace(/\//g, '-');

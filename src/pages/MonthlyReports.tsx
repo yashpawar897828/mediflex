@@ -2,16 +2,10 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, FileSpreadsheet, FileText, Download } from "lucide-react";
-import { generateMonthlyReport } from "@/utils/ReportService";
+import { generateMonthlyReport, ReportMetadata } from "@/utils/ReportService";
 import { toast } from "sonner";
 
-interface Report {
-  id: number;
-  name: string;
-  type: 'excel' | 'pdf';
-  date: string;
-  path: string;
-}
+type Report = ReportMetadata;
 
 const MonthlyReports = () => {
   const [isGenerating, setIsGenerating] = useState(false);

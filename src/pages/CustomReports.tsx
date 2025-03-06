@@ -2,20 +2,13 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileSpreadsheet, FileText, BarChart, Download } from "lucide-react";
-import { generateCustomReport } from "@/utils/ReportService";
+import { generateCustomReport, ReportMetadata } from "@/utils/ReportService";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 type ReportType = 'sales' | 'purchase' | 'inventory';
-
-interface Report {
-  id: number;
-  name: string;
-  type: 'excel' | 'pdf';
-  date: string;
-  path: string;
-}
+type Report = ReportMetadata;
 
 const CustomReports = () => {
   const [isGenerating, setIsGenerating] = useState(false);
