@@ -2,7 +2,9 @@
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
+// Import autotable properly (this was the issue)
 import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 // Sample data for reports
 export const getSampleData = (type: string) => {
@@ -88,8 +90,8 @@ export const exportToPDF = (data: any[], fileName: string, title: string) => {
   const headers = Object.keys(data[0]);
   const tableData = data.map(item => Object.values(item));
   
-  // @ts-ignore - jspdf-autotable is not fully typed
-  doc.autoTable({
+  // Use autoTable directly instead of as a method on doc
+  autoTable(doc, {
     head: [headers],
     body: tableData,
     startY: 35,
@@ -101,6 +103,15 @@ export const exportToPDF = (data: any[], fileName: string, title: string) => {
   
   // Save file
   doc.save(`${fileName}.pdf`);
+  
+  // Return generated report metadata for storage
+  return {
+    id: Date.now(),
+    name: fileName,
+    type: 'pdf',
+    date: new Date().toISOString(),
+    path: `${fileName}.pdf`
+  };
 };
 
 // Generate monthly report
@@ -111,8 +122,15 @@ export const generateMonthlyReport = (format: 'excel' | 'pdf') => {
   
   if (format === 'excel') {
     exportToExcel(data, `Monthly_Report_${currentMonth}`);
+    return {
+      id: Date.now(),
+      name: `Monthly_Report_${currentMonth}`,
+      type: 'excel',
+      date: new Date().toISOString(),
+      path: `Monthly_Report_${currentMonth}.xlsx`
+    };
   } else {
-    exportToPDF(data, `Monthly_Report_${currentMonth}`, `Monthly Report - ${currentMonth}`);
+    return exportToPDF(data, `Monthly_Report_${currentMonth}`, `Monthly Report - ${currentMonth}`);
   }
 };
 
@@ -132,8 +150,15 @@ export const generateDailyReport = (format: 'excel' | 'pdf') => {
   
   if (format === 'excel') {
     exportToExcel(data, `Daily_Report_${formattedDate}`);
+    return {
+      id: Date.now(),
+      name: `Daily_Report_${formattedDate}`,
+      type: 'excel',
+      date: new Date().toISOString(),
+      path: `Daily_Report_${formattedDate}.xlsx`
+    };
   } else {
-    exportToPDF(data, `Daily_Report_${formattedDate}`, `Daily Report - ${formattedDate}`);
+    return exportToPDF(data, `Daily_Report_${formattedDate}`, `Daily Report - ${formattedDate}`);
   }
 };
 
@@ -145,13 +170,21 @@ export const generateCustomReport = (
   const data = getSampleData(reportType);
   const today = new Date();
   const formattedDate = today.toLocaleDateString().replace(/\//g, '-');
+  const reportName = `${reportType.charAt(0).toUpperCase() + reportType.slice(1)}_Report_${formattedDate}`;
   
   if (format === 'excel') {
-    exportToExcel(data, `${reportType.charAt(0).toUpperCase() + reportType.slice(1)}_Report_${formattedDate}`);
+    exportToExcel(data, reportName);
+    return {
+      id: Date.now(),
+      name: reportName,
+      type: 'excel',
+      date: new Date().toISOString(),
+      path: `${reportName}.xlsx`
+    };
   } else {
-    exportToPDF(
+    return exportToPDF(
       data, 
-      `${reportType.charAt(0).toUpperCase() + reportType.slice(1)}_Report_${formattedDate}`,
+      reportName,
       `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report - ${formattedDate}`
     );
   }

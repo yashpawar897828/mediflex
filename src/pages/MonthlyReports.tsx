@@ -1,20 +1,48 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, FileSpreadsheet, FileText } from "lucide-react";
+import { Calendar, FileSpreadsheet, FileText, Download } from "lucide-react";
 import { generateMonthlyReport } from "@/utils/ReportService";
 import { toast } from "sonner";
 
+interface Report {
+  id: number;
+  name: string;
+  type: 'excel' | 'pdf';
+  date: string;
+  path: string;
+}
+
 const MonthlyReports = () => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [recentReports, setRecentReports] = useState<Report[]>([]);
+
+  useEffect(() => {
+    const savedReports = localStorage.getItem('monthlyReports');
+    if (savedReports) {
+      setRecentReports(JSON.parse(savedReports));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (recentReports.length) {
+      localStorage.setItem('monthlyReports', JSON.stringify(recentReports));
+    }
+  }, [recentReports]);
 
   const handleGenerateReport = async (format: 'excel' | 'pdf') => {
     setIsGenerating(true);
     try {
-      // Small delay to simulate processing
       await new Promise(resolve => setTimeout(resolve, 500));
-      generateMonthlyReport(format);
+      const reportMeta = generateMonthlyReport(format);
+      
+      if (reportMeta) {
+        setRecentReports(prev => {
+          const updatedReports = [reportMeta, ...prev.slice(0, 4)];
+          return updatedReports;
+        });
+      }
+      
       toast.success(`Monthly report generated successfully in ${format.toUpperCase()} format`);
     } catch (error) {
       console.error("Error generating report:", error);
@@ -26,6 +54,10 @@ const MonthlyReports = () => {
 
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   const currentYear = new Date().getFullYear();
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
+  };
 
   return (
     <div className="space-y-6">
@@ -75,9 +107,30 @@ const MonthlyReports = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center text-muted-foreground py-8">
-            Previous reports will be available here once generated.
-          </div>
+          {recentReports.length > 0 ? (
+            <div className="space-y-4">
+              {recentReports.map((report) => (
+                <div 
+                  key={report.id} 
+                  className="flex items-center justify-between border p-4 rounded-md"
+                >
+                  <div>
+                    <p className="font-medium">{report.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Generated: {formatDate(report.date)} | Format: {report.type.toUpperCase()}
+                    </p>
+                  </div>
+                  <Button variant="ghost" className="h-8 w-8 p-0" title="Download">
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center text-muted-foreground py-8">
+              No previous reports. Generate a report to see it here.
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
