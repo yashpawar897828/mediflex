@@ -16,6 +16,8 @@ import CustomReports from "./pages/CustomReports";
 import Inventory from "./pages/Inventory";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import RegularBuyers from "./pages/RegularBuyers";
+import Distributors from "./pages/Distributors";
 
 const queryClient = new QueryClient();
 
@@ -90,40 +92,14 @@ const App = () => (
             <Route path="/buyers" element={
               <ProtectedRoute>
                 <MainLayout>
-                  <div className="p-4">
-                    <h1 className="text-3xl font-bold">Regular Buyers</h1>
-                    <p className="text-muted-foreground">Coming soon...</p>
-                  </div>
+                  <RegularBuyers />
                 </MainLayout>
               </ProtectedRoute>
             } />
             <Route path="/distribution" element={
               <ProtectedRoute>
                 <MainLayout>
-                  <div className="p-4">
-                    <h1 className="text-3xl font-bold">Distribution Management</h1>
-                    <p className="text-muted-foreground">Coming soon...</p>
-                  </div>
-                </MainLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/monthly-reports" element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <div className="p-4">
-                    <h1 className="text-3xl font-bold">Monthly Reports</h1>
-                    <p className="text-muted-foreground">Coming soon...</p>
-                  </div>
-                </MainLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/docs" element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <div className="p-4">
-                    <h1 className="text-3xl font-bold">Documentation</h1>
-                    <p className="text-muted-foreground">Coming soon...</p>
-                  </div>
+                  <Distributors />
                 </MainLayout>
               </ProtectedRoute>
             } />
