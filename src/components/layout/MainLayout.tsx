@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   BarChart, 
   Barcode, 
@@ -11,10 +11,13 @@ import {
   Users, 
   Truck, 
   Calendar,
-  Database
+  Database,
+  LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -44,7 +47,15 @@ interface MainLayoutProps {
 
 const MainLayout = ({ children }: MainLayoutProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    toast.success("Logged out successfully");
+    navigate("/login");
+  };
 
   const navItems = [
     { icon: <Home size={20} />, label: "Dashboard", href: "/" },
@@ -79,6 +90,21 @@ const MainLayout = ({ children }: MainLayoutProps) => {
             />
           ))}
         </nav>
+        {user && (
+          <div className="p-2 border-t border-border">
+            <div className="px-3 py-2 text-sm font-medium text-muted-foreground">
+              Signed in as {user.name}
+            </div>
+            <Button 
+              variant="outline" 
+              className="w-full justify-start text-red-500 hover:text-red-700 hover:bg-red-50"
+              onClick={handleLogout}
+            >
+              <LogOut size={20} />
+              <span>Sign out</span>
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Mobile header and content */}
@@ -88,9 +114,21 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-teal-400">
             Mediflex
           </h1>
-          <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            <Menu />
-          </Button>
+          <div className="flex items-center gap-2">
+            {user && (
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="text-red-500"
+                onClick={handleLogout}
+              >
+                <LogOut size={20} />
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+              <Menu />
+            </Button>
+          </div>
         </header>
 
         {/* Mobile menu */}
@@ -107,6 +145,13 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                 />
               ))}
             </nav>
+            {user && (
+              <div className="pt-2 mt-2 border-t border-border">
+                <div className="px-3 py-2 text-sm font-medium text-muted-foreground">
+                  Signed in as {user.name}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
