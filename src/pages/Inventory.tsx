@@ -121,11 +121,8 @@ const Inventory = () => {
     });
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD"
-    }).format(amount);
+  const formatPrice = (amount: number) => {
+    return Math.round(amount);
   };
 
   return (
@@ -275,7 +272,7 @@ const Inventory = () => {
                     <td className="py-3 px-4">{product.name}</td>
                     <td className="py-3 px-4">{product.batch}</td>
                     <td className="py-3 px-4">{formatDate(product.expiry)}</td>
-                    <td className="py-3 px-4">{formatCurrency(product.price)}</td>
+                    <td className="py-3 px-4">{formatPrice(product.price)}</td>
                     <td className="py-3 px-4">{product.stock}</td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">

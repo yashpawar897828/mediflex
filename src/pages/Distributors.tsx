@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,7 +66,6 @@ const Distributors = () => {
     price: 0
   });
 
-  // Load sample data on first render
   useEffect(() => {
     const savedDistributors = localStorage.getItem('distributors');
     if (savedDistributors) {
@@ -78,7 +76,6 @@ const Distributors = () => {
     }
   }, []);
 
-  // Save distributors to localStorage when they change
   useEffect(() => {
     if (distributors.length) {
       localStorage.setItem('distributors', JSON.stringify(distributors));
@@ -210,11 +207,8 @@ const Distributors = () => {
     setIsAddingDistributor(true);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD"
-    }).format(amount);
+  const formatPrice = (amount: number) => {
+    return Math.round(amount);
   };
 
   const calculateTotalValue = (products: DistributionProduct[]) => {
@@ -353,7 +347,7 @@ const Distributors = () => {
                     <h3 className="font-medium">Product List</h3>
                     <div className="flex items-center gap-4">
                       <div className="text-sm">
-                        Total value: <span className="font-bold">{formatCurrency(calculateTotalValue(distributor.products))}</span>
+                        Total value: <span className="font-bold">{formatPrice(calculateTotalValue(distributor.products))}</span>
                       </div>
                       <Button 
                         size="sm" 
@@ -465,8 +459,8 @@ const Distributors = () => {
                                 <td className="py-2 px-4">{product.name}</td>
                                 <td className="py-2 px-4">{new Date(product.date).toLocaleDateString()}</td>
                                 <td className="py-2 px-4">{product.quantity}</td>
-                                <td className="py-2 px-4">{formatCurrency(product.price)}</td>
-                                <td className="py-2 px-4">{formatCurrency(product.price * product.quantity)}</td>
+                                <td className="py-2 px-4">{formatPrice(product.price)}</td>
+                                <td className="py-2 px-4">{formatPrice(product.price * product.quantity)}</td>
                                 <td className="py-2 px-4">
                                   <Button
                                     variant="ghost"

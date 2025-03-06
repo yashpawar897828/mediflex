@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,7 +66,6 @@ const RegularBuyers = () => {
     price: 0
   });
 
-  // Load sample data on first render
   useEffect(() => {
     const savedBuyers = localStorage.getItem('regularBuyers');
     if (savedBuyers) {
@@ -78,7 +76,6 @@ const RegularBuyers = () => {
     }
   }, []);
 
-  // Save buyers to localStorage when they change
   useEffect(() => {
     if (buyers.length) {
       localStorage.setItem('regularBuyers', JSON.stringify(buyers));
@@ -210,11 +207,8 @@ const RegularBuyers = () => {
     setIsAddingBuyer(true);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD"
-    }).format(amount);
+  const formatPrice = (amount: number) => {
+    return Math.round(amount);
   };
 
   const calculateTotalSpend = (purchases: BuyerPurchase[]) => {
@@ -353,7 +347,7 @@ const RegularBuyers = () => {
                     <h3 className="font-medium">Purchase History</h3>
                     <div className="flex items-center gap-4">
                       <div className="text-sm">
-                        Total spend: <span className="font-bold">{formatCurrency(calculateTotalSpend(buyer.purchases))}</span>
+                        Total spend: <span className="font-bold">{formatPrice(calculateTotalSpend(buyer.purchases))}</span>
                       </div>
                       <Button 
                         size="sm" 
@@ -465,8 +459,8 @@ const RegularBuyers = () => {
                                 <td className="py-2 px-4">{purchase.medicine}</td>
                                 <td className="py-2 px-4">{new Date(purchase.date).toLocaleDateString()}</td>
                                 <td className="py-2 px-4">{purchase.quantity}</td>
-                                <td className="py-2 px-4">{formatCurrency(purchase.price)}</td>
-                                <td className="py-2 px-4">{formatCurrency(purchase.price * purchase.quantity)}</td>
+                                <td className="py-2 px-4">{formatPrice(purchase.price)}</td>
+                                <td className="py-2 px-4">{formatPrice(purchase.price * purchase.quantity)}</td>
                                 <td className="py-2 px-4">
                                   <Button
                                     variant="ghost"
