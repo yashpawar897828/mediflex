@@ -6,6 +6,12 @@ import { BarChart, FileSpreadsheet, FileText, Download, Calendar, TrendingUp, Tr
 const Reports = () => {
   const reportTypes = [
     {
+      title: "Daily Reports",
+      description: "Generate daily sales and activity summaries",
+      icon: <Calendar className="h-8 w-8" />,
+      link: "/daily-reports"
+    },
+    {
       title: "Monthly Reports",
       description: "Generate comprehensive monthly reports for sales and inventory",
       icon: <Calendar className="h-8 w-8" />,
@@ -15,25 +21,25 @@ const Reports = () => {
       title: "Sales Reports",
       description: "Analyze sales data, trends, and customer purchasing patterns",
       icon: <TrendingUp className="h-8 w-8" />,
-      link: "/sales-reports"
+      link: "/custom-reports"
     },
     {
       title: "Purchase Reports",
       description: "Track all purchases, suppliers, and inventory additions",
       icon: <TrendingDown className="h-8 w-8" />,
-      link: "/purchase-reports"
+      link: "/custom-reports"
     },
     {
       title: "Excel Export",
       description: "Export data in Excel format for further analysis",
       icon: <FileSpreadsheet className="h-8 w-8" />,
-      link: "/excel-export"
+      link: "/custom-reports"
     },
     {
       title: "PDF Reports",
       description: "Generate professional PDF reports for sharing and printing",
       icon: <FileText className="h-8 w-8" />,
-      link: "/pdf-reports"
+      link: "/custom-reports"
     },
     {
       title: "Custom Reports",

@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +10,9 @@ import Dashboard from "./pages/Dashboard";
 import BarcodeScanner from "./pages/BarcodeScanner";
 import OcrScanner from "./pages/OcrScanner";
 import Reports from "./pages/Reports";
+import DailyReports from "./pages/DailyReports";
+import MonthlyReports from "./pages/MonthlyReports";
+import CustomReports from "./pages/CustomReports";
 import Inventory from "./pages/Inventory";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
@@ -54,6 +56,27 @@ const App = () => (
               <ProtectedRoute>
                 <MainLayout>
                   <Reports />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/daily-reports" element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <DailyReports />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/monthly-reports" element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <MonthlyReports />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/custom-reports" element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <CustomReports />
                 </MainLayout>
               </ProtectedRoute>
             } />
