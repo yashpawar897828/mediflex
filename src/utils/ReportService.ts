@@ -120,9 +120,15 @@ export const generateMonthlyReport = (format: 'excel' | 'pdf') => {
 export const generateDailyReport = (format: 'excel' | 'pdf') => {
   const today = new Date();
   const formattedDate = today.toLocaleDateString().replace(/\//g, '-');
-  const data = getSampleData('sales').filter(item => 
-    new Date(item.date).toDateString() === today.toDateString()
-  );
+  
+  // Use sales data type which has date property for daily reports
+  const data = getSampleData('sales').filter(item => {
+    // Make sure the item has a date property before trying to access it
+    if ('date' in item) {
+      return new Date(item.date).toDateString() === today.toDateString();
+    }
+    return false;
+  });
   
   if (format === 'excel') {
     exportToExcel(data, `Daily_Report_${formattedDate}`);
