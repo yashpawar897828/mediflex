@@ -16,22 +16,31 @@ const OcrScanner = () => {
   const [ocrProgress, setOcrProgress] = useState(0);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const webcamRef = useRef<Webcam>(null);
-  const workerRef = useRef<Tesseract.Worker | null>(null);
+  // Change the workerRef type to any to avoid TypeScript errors
+  const workerRef = useRef<any>(null);
 
   // Initialize Tesseract worker
   useEffect(() => {
     const initWorker = async () => {
-      workerRef.current = await createWorker({
-        logger: message => {
-          if (message.status === "recognizing text") {
-            setOcrProgress(message.progress * 100);
+      try {
+        // Create worker with progress callback
+        workerRef.current = await createWorker({
+          logger: m => {
+            if (m.status === "recognizing text") {
+              setOcrProgress(m.progress * 100);
+            }
           }
-        }
-      });
-      
-      // Initialize worker with English language
-      await workerRef.current.loadLanguage("eng");
-      await workerRef.current.initialize("eng");
+        });
+        
+        // Initialize worker with English language
+        await workerRef.current.loadLanguage("eng");
+        await workerRef.current.initialize("eng");
+        
+        console.log("OCR worker initialized successfully");
+      } catch (error) {
+        console.error("Failed to initialize OCR worker:", error);
+        toast.error("Failed to initialize OCR engine. Please try again.");
+      }
     };
 
     initWorker();
@@ -39,7 +48,11 @@ const OcrScanner = () => {
     // Cleanup worker on component unmount
     return () => {
       if (workerRef.current) {
-        workerRef.current.terminate();
+        try {
+          workerRef.current.terminate();
+        } catch (error) {
+          console.error("Error terminating OCR worker:", error);
+        }
       }
     };
   }, []);
@@ -266,4 +279,3 @@ const OcrScanner = () => {
 };
 
 export default OcrScanner;
-
