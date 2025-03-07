@@ -1,23 +1,28 @@
 
 import { useState, useRef, useEffect } from "react";
-import { createWorker } from "tesseract.js";
+import { createWorker, Worker } from "tesseract.js";
 import { toast } from "sonner";
 
 export const useOcr = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
-  const workerRef = useRef<any>(null);
+  const workerRef = useRef<Worker | null>(null);
 
   // Initialize Tesseract worker
   useEffect(() => {
     const initWorker = async () => {
       try {
-        // Create worker with progress callback
-        workerRef.current = await createWorker((m: any) => {
-          if (m.status === "recognizing text") {
-            setOcrProgress(m.progress * 100);
-          }
-        });
+        // Create worker
+        workerRef.current = await createWorker();
+        
+        // Set up progress logger
+        if (workerRef.current) {
+          workerRef.current.setLogger((m) => {
+            if (m.status === "recognizing text") {
+              setOcrProgress(m.progress * 100);
+            }
+          });
+        }
         
         // Initialize worker with English language
         await workerRef.current.loadLanguage("eng");
