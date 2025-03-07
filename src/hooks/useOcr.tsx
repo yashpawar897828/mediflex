@@ -14,12 +14,13 @@ export const useOcr = () => {
     const initWorker = async () => {
       try {
         // Create worker
-        workerRef.current = await createWorker({
-          logger: (m) => {
-            if (m.status === "recognizing text") {
-              setOcrProgress(m.progress * 100);
-            }
-          },
+        workerRef.current = await createWorker();
+        
+        // Set up progress logger separately after worker creation
+        workerRef.current.setLogger((m: any) => {
+          if (m.status === "recognizing text") {
+            setOcrProgress(m.progress * 100);
+          }
         });
         
         // Initialize worker with English language
