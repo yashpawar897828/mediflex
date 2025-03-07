@@ -3,15 +3,9 @@ import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
-const initialInventory = [
-  { id: 1, name: "Paracetamol 500mg", expiry: "2025-06-30", batch: "PCM2023-45", price: 5.99, stock: 250 },
-  { id: 2, name: "Amoxicillin 250mg", expiry: "2024-11-15", batch: "AMX2022-78", price: 12.50, stock: 120 },
-  { id: 3, name: "Ibuprofen 400mg", expiry: "2026-03-22", batch: "IBP2023-32", price: 7.25, stock: 180 },
-  { id: 4, name: "Cetirizine 10mg", expiry: "2025-09-10", batch: "CTZ2023-91", price: 8.99, stock: 90 }
-];
+const initialInventory: InventoryItem[] = [];
 
 interface InventoryItem {
   id: number;

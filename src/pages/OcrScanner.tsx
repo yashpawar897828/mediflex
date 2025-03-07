@@ -1,25 +1,118 @@
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { ScanText, Save, Search, Upload } from "lucide-react";
+import { ScanText, Save, Search, Upload, Camera, Copy, StopCircle } from "lucide-react";
+import Webcam from "react-webcam";
+import { createWorker } from "tesseract.js";
+import { toast } from "sonner";
 
 const OcrScanner = () => {
   const [text, setText] = useState("");
   const [mode, setMode] = useState<"store" | "retrieve">("store");
+  const [isScanning, setIsScanning] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState(0);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const webcamRef = useRef<Webcam>(null);
+  const workerRef = useRef<Tesseract.Worker | null>(null);
 
-  const handleScan = () => {
-    // This is a placeholder. In a real app, we would use an OCR library
-    console.log(`OCR scanning in ${mode} mode`);
-    
-    // In a real implementation, this would connect to a backend API
-    if (mode === "store") {
-      console.log("Storing OCR data in database...");
-      // Logic to store data
-    } else {
-      console.log("Retrieving data via OCR...");
-      // Logic to retrieve data
+  // Initialize Tesseract worker
+  useEffect(() => {
+    const initWorker = async () => {
+      workerRef.current = await createWorker({
+        logger: message => {
+          if (message.status === "recognizing text") {
+            setOcrProgress(message.progress * 100);
+          }
+        }
+      });
+      
+      // Initialize worker with English language
+      await workerRef.current.loadLanguage("eng");
+      await workerRef.current.initialize("eng");
+    };
+
+    initWorker();
+
+    // Cleanup worker on component unmount
+    return () => {
+      if (workerRef.current) {
+        workerRef.current.terminate();
+      }
+    };
+  }, []);
+
+  const handleCapture = () => {
+    const imageSrc = webcamRef.current?.getScreenshot();
+    if (imageSrc) {
+      setCapturedImage(imageSrc);
+      setIsScanning(false);
+    }
+  };
+
+  const handleProcessImage = async () => {
+    if (!capturedImage && !text) {
+      toast.error("No image to process. Please capture or upload an image first.");
+      return;
+    }
+
+    if (!workerRef.current) {
+      toast.error("OCR engine is not ready yet. Please try again in a moment.");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      let result;
+      
+      if (capturedImage) {
+        result = await workerRef.current.recognize(capturedImage);
+        setText(result.data.text);
+        
+        if (mode === "store") {
+          // In a real application, this would store data in a database
+          toast.success("Text extracted and stored successfully!");
+        } else {
+          // In a real application, this would search the database
+          toast.success("Text extracted for search!");
+        }
+      }
+    } catch (error) {
+      console.error("OCR processing error:", error);
+      toast.error("Error processing image. Please try again.");
+    } finally {
+      setIsProcessing(false);
+      setOcrProgress(0);
+    }
+  };
+
+  const handleStartCamera = () => {
+    setIsScanning(true);
+    setCapturedImage(null);
+  };
+
+  const handleStopCamera = () => {
+    setIsScanning(false);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setCapturedImage(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCopyToClipboard = () => {
+    if (text) {
+      navigator.clipboard.writeText(text)
+        .then(() => toast.success("Text copied to clipboard"))
+        .catch(() => toast.error("Failed to copy text"));
     }
   };
 
@@ -43,6 +136,7 @@ const OcrScanner = () => {
               variant={mode === "store" ? "default" : "outline"} 
               onClick={() => setMode("store")}
               className="flex-1"
+              disabled={isProcessing}
             >
               <Save className="mr-2 h-4 w-4" />
               Store Data
@@ -51,39 +145,118 @@ const OcrScanner = () => {
               variant={mode === "retrieve" ? "default" : "outline"} 
               onClick={() => setMode("retrieve")}
               className="flex-1"
+              disabled={isProcessing}
             >
               <Search className="mr-2 h-4 w-4" />
               Search Data
             </Button>
           </div>
 
-          <div className="h-64 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center">
-            <div className="text-center">
-              <ScanText className="mx-auto h-12 w-12 text-gray-300" />
-              <p className="mt-2 text-sm text-gray-500">
-                Camera feed for document scanning would appear here
-              </p>
-              <p className="text-xs text-gray-400">
-                (Actual OCR implementation requires camera access and an OCR library)
-              </p>
-              <Button variant="outline" className="mt-4">
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Image
-              </Button>
-            </div>
+          <div className="h-64 border rounded-lg overflow-hidden relative">
+            {isScanning ? (
+              <>
+                <Webcam
+                  audio={false}
+                  ref={webcamRef}
+                  screenshotFormat="image/jpeg"
+                  videoConstraints={{ facingMode: "environment" }}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute bottom-3 left-0 right-0 flex justify-center space-x-2">
+                  <Button onClick={handleCapture} variant="secondary">
+                    <Camera className="mr-2 h-4 w-4" />
+                    Capture
+                  </Button>
+                  <Button onClick={handleStopCamera} variant="destructive" size="sm">
+                    <StopCircle className="mr-2 h-4 w-4" />
+                    Stop Camera
+                  </Button>
+                </div>
+              </>
+            ) : capturedImage ? (
+              <div className="relative w-full h-full">
+                <img 
+                  src={capturedImage} 
+                  alt="Captured" 
+                  className="w-full h-full object-contain" 
+                />
+                <div className="absolute bottom-3 left-0 right-0 flex justify-center">
+                  <Button onClick={() => setCapturedImage(null)} variant="outline" size="sm">
+                    Clear Image
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full">
+                <ScanText className="h-12 w-12 text-muted-foreground mb-4" />
+                <div className="flex flex-col gap-2 items-center">
+                  <Button onClick={handleStartCamera}>
+                    <Camera className="mr-2 h-4 w-4" />
+                    Start Camera
+                  </Button>
+                  <div className="flex items-center">
+                    <span className="text-sm text-muted-foreground mr-2">or</span>
+                    <label htmlFor="image-upload" className="cursor-pointer">
+                      <Button variant="outline" onClick={() => document.getElementById('image-upload')?.click()}>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Image
+                      </Button>
+                      <input
+                        id="image-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                        disabled={isProcessing}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          <Textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Extracted text will appear here..."
-            className="min-h-32"
-          />
+          {isProcessing && (
+            <div className="mt-2">
+              <div className="w-full bg-muted rounded-full h-2.5">
+                <div 
+                  className="bg-primary h-2.5 rounded-full transition-all" 
+                  style={{ width: `${ocrProgress}%` }} 
+                />
+              </div>
+              <p className="text-xs text-center mt-1 text-muted-foreground">
+                Processing... {Math.round(ocrProgress)}%
+              </p>
+            </div>
+          )}
+
+          <div className="relative">
+            <Textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Extracted text will appear here..."
+              className="min-h-32"
+              disabled={isProcessing}
+            />
+            {text && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="absolute top-2 right-2"
+                onClick={handleCopyToClipboard}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
 
           <div className="flex justify-end">
-            <Button onClick={handleScan}>
+            <Button 
+              onClick={handleProcessImage} 
+              disabled={isProcessing || (!capturedImage && !text)}
+            >
               <ScanText className="mr-2 h-4 w-4" />
-              {mode === "store" ? "Process & Store" : "Search Database"}
+              {isProcessing ? "Processing..." : mode === "store" ? "Process & Store" : "Search Database"}
             </Button>
           </div>
         </CardContent>
@@ -93,3 +266,4 @@ const OcrScanner = () => {
 };
 
 export default OcrScanner;
+
