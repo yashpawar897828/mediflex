@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -208,7 +209,7 @@ const RegularBuyers = () => {
   };
 
   const formatPrice = (amount: number) => {
-    return Math.round(amount);
+    return `₹${Math.round(amount)}`;
   };
 
   const calculateTotalSpend = (purchases: BuyerPurchase[]) => {
