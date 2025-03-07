@@ -1,23 +1,14 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-
-const initialInventory: InventoryItem[] = [];
-
-interface InventoryItem {
-  id: number;
-  name: string;
-  expiry: string;
-  batch: string;
-  price: number;
-  stock: number;
-}
+import { inventoryService, InventoryItem } from "@/services/InventoryService";
 
 const Inventory = () => {
-  const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [editingProduct, setEditingProduct] = useState<InventoryItem | null>(null);
@@ -28,6 +19,16 @@ const Inventory = () => {
     price: 0,
     stock: 0
   });
+
+  // Load inventory data from service on component mount
+  useEffect(() => {
+    const loadInventory = () => {
+      const data = inventoryService.getInventory();
+      setInventory(data);
+    };
+    
+    loadInventory();
+  }, []);
 
   const filteredInventory = inventory.filter(item => 
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -48,23 +49,25 @@ const Inventory = () => {
       return;
     }
     
-    const productId = Math.max(0, ...inventory.map(item => item.id)) + 1;
-    
-    setInventory(prev => [
-      ...prev,
-      { id: productId, ...newProduct }
-    ]);
-    
-    setNewProduct({
-      name: "",
-      expiry: "",
-      batch: "",
-      price: 0,
-      stock: 0
-    });
-    
-    setIsAddingProduct(false);
-    toast.success("Product added successfully");
+    try {
+      const savedItem = inventoryService.saveItem(newProduct);
+      
+      setInventory(prev => [...prev, savedItem]);
+      
+      setNewProduct({
+        name: "",
+        expiry: "",
+        batch: "",
+        price: 0,
+        stock: 0
+      });
+      
+      setIsAddingProduct(false);
+      toast.success("Product added successfully");
+    } catch (error) {
+      console.error("Error adding product:", error);
+      toast.error("Failed to add product");
+    }
   };
 
   const handleEditProduct = (product: InventoryItem) => {
@@ -81,28 +84,40 @@ const Inventory = () => {
   const handleUpdateProduct = () => {
     if (!editingProduct) return;
     
-    setInventory(prev => 
-      prev.map(item => 
-        item.id === editingProduct.id 
-          ? { id: editingProduct.id, ...newProduct } 
-          : item
-      )
-    );
-    
-    setEditingProduct(null);
-    setNewProduct({
-      name: "",
-      expiry: "",
-      batch: "",
-      price: 0,
-      stock: 0
-    });
-    
-    toast.success("Product updated successfully");
+    try {
+      const updatedItem = inventoryService.updateItem(editingProduct.id, newProduct);
+      
+      if (updatedItem) {
+        setInventory(prev => 
+          prev.map(item => 
+            item.id === editingProduct.id ? updatedItem : item
+          )
+        );
+        
+        setEditingProduct(null);
+        setNewProduct({
+          name: "",
+          expiry: "",
+          batch: "",
+          price: 0,
+          stock: 0
+        });
+        
+        toast.success("Product updated successfully");
+      }
+    } catch (error) {
+      console.error("Error updating product:", error);
+      toast.error("Failed to update product");
+    }
   };
 
   const handleDeleteProduct = (id: number) => {
-    setInventory(prev => prev.filter(item => item.id !== id));
+    // Use the current inventory array to persist to localStorage without the deleted item
+    const updatedInventory = inventory.filter(item => item.id !== id);
+    localStorage.setItem("mediflex_inventory", JSON.stringify(updatedInventory));
+    
+    // Update state
+    setInventory(updatedInventory);
     toast.success("Product deleted successfully");
   };
 
@@ -266,7 +281,7 @@ const Inventory = () => {
                     <td className="py-3 px-4">{product.name}</td>
                     <td className="py-3 px-4">{product.batch}</td>
                     <td className="py-3 px-4">{formatDate(product.expiry)}</td>
-                    <td className="py-3 px-4">{formatPrice(product.price)}</td>
+                    <td className="py-3 px-4">${product.price.toFixed(2)}</td>
                     <td className="py-3 px-4">{product.stock}</td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
