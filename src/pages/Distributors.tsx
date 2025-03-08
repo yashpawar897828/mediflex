@@ -1,28 +1,13 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Edit, Trash2, Truck, Phone, Package } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { dashboardService } from "@/services/DashboardService";
-
-interface DistributionProduct {
-  id: number;
-  name: string;
-  date: string;
-  quantity: number;
-  price: number;
-}
-
-interface Distributor {
-  id: number;
-  name: string;
-  contact: string;
-  address: string;
-  products: DistributionProduct[];
-}
+import { Distributor, DistributionProduct } from "@/types/distributors";
+import DistributorSearch from "@/components/distributors/DistributorSearch";
+import DistributorForm from "@/components/distributors/DistributorForm";
+import DistributorList from "@/components/distributors/DistributorList";
 
 const Distributors = () => {
   const [distributors, setDistributors] = useState<Distributor[]>([]);
@@ -94,13 +79,7 @@ const Distributors = () => {
       { id: distributorId, ...newDistributor, products: [] }
     ]);
     
-    setNewDistributor({
-      name: "",
-      contact: "",
-      address: ""
-    });
-    
-    setIsAddingDistributor(false);
+    resetDistributorForm();
     toast.success("Distributor added successfully");
   };
 
@@ -115,13 +94,7 @@ const Distributors = () => {
       )
     );
     
-    setSelectedDistributor(null);
-    setNewDistributor({
-      name: "",
-      contact: "",
-      address: ""
-    });
-    
+    resetDistributorForm();
     toast.success("Distributor updated successfully");
   };
 
@@ -151,14 +124,7 @@ const Distributors = () => {
     
     dashboardService.addActivity('distribution', `Distribution: ${newProduct.name} to ${selectedDistributor.name}`);
     
-    setNewProduct({
-      name: "",
-      date: new Date().toISOString().split('T')[0],
-      quantity: 1,
-      price: 0
-    });
-    
-    setIsAddingProduct(false);
+    resetProductForm();
     toast.success("Product added successfully");
   };
 
@@ -187,6 +153,27 @@ const Distributors = () => {
     setIsAddingDistributor(true);
   };
 
+  const resetDistributorForm = () => {
+    setIsAddingDistributor(false);
+    setSelectedDistributor(null);
+    setNewDistributor({
+      name: "",
+      contact: "",
+      address: ""
+    });
+  };
+
+  const resetProductForm = () => {
+    setIsAddingProduct(false);
+    setSelectedDistributor(null);
+    setNewProduct({
+      name: "",
+      date: new Date().toISOString().split('T')[0],
+      quantity: 1,
+      price: 0
+    });
+  };
+
   const formatPrice = (amount: number) => {
     return `₹${Math.round(amount)}`;
   };
@@ -207,265 +194,40 @@ const Distributors = () => {
         </Button>
       </div>
 
-      <div className="flex w-full max-w-sm items-center space-x-2 mb-6">
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search distributors..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10"
-          />
-        </div>
-      </div>
+      <DistributorSearch 
+        searchTerm={searchTerm} 
+        setSearchTerm={setSearchTerm} 
+      />
 
       {isAddingDistributor && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{selectedDistributor ? "Edit Distributor" : "Add New Distributor"}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Distributor Name *</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={newDistributor.name}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contact">Contact Number *</Label>
-                  <Input
-                    id="contact"
-                    name="contact"
-                    value={newDistributor.contact}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Textarea
-                  id="address"
-                  name="address"
-                  value={newDistributor.address}
-                  onChange={handleInputChange}
-                  rows={3}
-                />
-              </div>
-              
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsAddingDistributor(false);
-                    setSelectedDistributor(null);
-                    setNewDistributor({
-                      name: "",
-                      contact: "",
-                      address: ""
-                    });
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={selectedDistributor ? handleUpdateDistributor : handleAddDistributor}>
-                  {selectedDistributor ? "Update" : "Add"} Distributor
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <DistributorForm
+          newDistributor={newDistributor}
+          selectedDistributor={selectedDistributor}
+          handleInputChange={handleInputChange}
+          handleAddDistributor={handleAddDistributor}
+          handleUpdateDistributor={handleUpdateDistributor}
+          onCancel={resetDistributorForm}
+        />
       )}
 
       {filteredDistributors.length > 0 ? (
-        <div className="grid grid-cols-1 gap-6">
-          {filteredDistributors.map((distributor) => (
-            <Card key={distributor.id}>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <CardTitle className="flex items-center">
-                      <Truck className="mr-2 h-5 w-5 text-primary" /> {distributor.name}
-                    </CardTitle>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Phone className="mr-2 h-4 w-4" /> {distributor.contact}
-                    </div>
-                    {distributor.address && (
-                      <p className="text-sm text-muted-foreground mt-1">{distributor.address}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => handleEditDistributor(distributor)}
-                      disabled={isAddingDistributor}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => handleDeleteDistributor(distributor.id)}
-                      disabled={isAddingDistributor}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-medium">Product List</h3>
-                    <div className="flex items-center gap-4">
-                      <div className="text-sm">
-                        Total value: <span className="font-bold">{formatPrice(calculateTotalValue(distributor.products))}</span>
-                      </div>
-                      <Button 
-                        size="sm" 
-                        onClick={() => { 
-                          setSelectedDistributor(distributor); 
-                          setIsAddingProduct(true); 
-                        }}
-                        disabled={isAddingProduct}
-                      >
-                        <Plus className="mr-1 h-3 w-3" /> Add Product
-                      </Button>
-                    </div>
-                  </div>
-
-                  {isAddingProduct && selectedDistributor?.id === distributor.id && (
-                    <Card className="border border-muted p-4">
-                      <div className="grid gap-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="product-name">Product Name *</Label>
-                            <Input
-                              id="product-name"
-                              name="name"
-                              value={newProduct.name}
-                              onChange={handleProductInputChange}
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="date">Distribution Date</Label>
-                            <Input
-                              id="date"
-                              name="date"
-                              type="date"
-                              value={newProduct.date}
-                              onChange={handleProductInputChange}
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="quantity">Quantity</Label>
-                            <Input
-                              id="quantity"
-                              name="quantity"
-                              type="number"
-                              min="1"
-                              value={newProduct.quantity}
-                              onChange={handleProductInputChange}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="price">Price per Unit</Label>
-                            <Input
-                              id="price"
-                              name="price"
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={newProduct.price}
-                              onChange={handleProductInputChange}
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setIsAddingProduct(false);
-                              setSelectedDistributor(null);
-                              setNewProduct({
-                                name: "",
-                                date: new Date().toISOString().split('T')[0],
-                                quantity: 1,
-                                price: 0
-                              });
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button size="sm" onClick={handleAddProduct}>
-                            Add Product
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  )}
-
-                  {distributor.products.length > 0 ? (
-                    <div className="border rounded-md">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b bg-muted/50">
-                              <th className="py-2 px-4 text-left font-medium">Product</th>
-                              <th className="py-2 px-4 text-left font-medium">Date</th>
-                              <th className="py-2 px-4 text-left font-medium">Qty</th>
-                              <th className="py-2 px-4 text-left font-medium">Price</th>
-                              <th className="py-2 px-4 text-left font-medium">Total</th>
-                              <th className="py-2 px-4 text-left font-medium">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {distributor.products.map((product) => (
-                              <tr key={product.id} className="border-b hover:bg-muted/50">
-                                <td className="py-2 px-4">{product.name}</td>
-                                <td className="py-2 px-4">{new Date(product.date).toLocaleDateString()}</td>
-                                <td className="py-2 px-4">{product.quantity}</td>
-                                <td className="py-2 px-4">{formatPrice(product.price)}</td>
-                                <td className="py-2 px-4">{formatPrice(product.price * product.quantity)}</td>
-                                <td className="py-2 px-4">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleDeleteProduct(distributor.id, product.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-4 text-muted-foreground">
-                      No products available
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <DistributorList
+          distributors={filteredDistributors}
+          selectedDistributor={selectedDistributor}
+          isAddingProduct={isAddingProduct}
+          newProduct={newProduct}
+          handleEditDistributor={handleEditDistributor}
+          handleDeleteDistributor={handleDeleteDistributor}
+          setSelectedDistributor={setSelectedDistributor}
+          setIsAddingProduct={setIsAddingProduct}
+          handleProductInputChange={handleProductInputChange}
+          handleAddProduct={handleAddProduct}
+          handleDeleteProduct={handleDeleteProduct}
+          formatPrice={formatPrice}
+          calculateTotalValue={calculateTotalValue}
+          resetProductForm={resetProductForm}
+          isAddingDistributor={isAddingDistributor}
+        />
       ) : (
         <div className="text-center py-10 border rounded-md bg-muted/10">
           <div className="text-muted-foreground">
