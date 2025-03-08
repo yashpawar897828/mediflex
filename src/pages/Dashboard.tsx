@@ -9,7 +9,7 @@ const Dashboard = () => {
     { icon: <ScanText className="h-6 w-6" />, title: "OCR Scans", value: "548", description: "Documents scanned" },
     { icon: <Users className="h-6 w-6" />, title: "Regular Buyers", value: "172", description: "Active customers" },
     { icon: <Truck className="h-6 w-6" />, title: "Distributions", value: "96", description: "This month" },
-    { icon: <BarChart className="h-6 w-6" />, title: "Total Sales", value: "$24,389", description: "This month" },
+    { icon: <BarChart className="h-6 w-6" />, title: "Total Sales", value: "₹24,389", description: "This month" },
     { icon: <FileText className="h-6 w-6" />, title: "Reports Generated", value: "42", description: "This month" }
   ];
 
