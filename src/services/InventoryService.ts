@@ -1,5 +1,6 @@
 
 import { toast } from "sonner";
+import { dashboardService } from "./DashboardService";
 
 // Define the inventory item interface for use throughout the app
 export interface InventoryItem {
@@ -81,11 +82,22 @@ class InventoryService {
     if (!barcode.trim()) return null;
     
     const inventory = this.getInventory();
-    return inventory.find(item => item.batch === barcode) || null;
+    const item = inventory.find(item => item.batch === barcode) || null;
+    
+    // Track this barcode scan in the dashboard
+    if (item) {
+      dashboardService.addActivity('barcode', `Product scan: ${item.name} (${barcode})`);
+    }
+    
+    return item;
   }
 
   // Parse OCR text to extract product information
   parseOcrText(text: string): Partial<InventoryItem> {
+    // Track OCR scan in the dashboard
+    dashboardService.trackOcrScan();
+    dashboardService.addActivity('ocr', `OCR scan: Document processed`);
+    
     // This is a simple implementation - in a real app this would be more sophisticated
     const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
     

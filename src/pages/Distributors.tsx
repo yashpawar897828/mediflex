@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Edit, Trash2, Truck, Phone, Package } from "lucide-react";
 import { toast } from "sonner";
+import { dashboardService } from "@/services/DashboardService";
 
 interface DistributionProduct {
   id: number;
@@ -23,29 +23,6 @@ interface Distributor {
   address: string;
   products: DistributionProduct[];
 }
-
-const sampleDistributors: Distributor[] = [
-  {
-    id: 1,
-    name: "MedSupply Co.",
-    contact: "+1 (555) 234-5678",
-    address: "123 Medical Plaza, Suite 300, Boston, MA 02115",
-    products: [
-      { id: 1, name: "Paracetamol 500mg", date: "2024-01-10", quantity: 500, price: 4.25 },
-      { id: 2, name: "Vitamin C 1000mg", date: "2024-01-15", quantity: 300, price: 6.75 }
-    ]
-  },
-  {
-    id: 2,
-    name: "Pharma Distributors Inc.",
-    contact: "+1 (555) 876-5432",
-    address: "456 Healthcare Blvd, Chicago, IL 60601",
-    products: [
-      { id: 3, name: "Antibiotic Solution 250ml", date: "2024-02-01", quantity: 100, price: 18.50 },
-      { id: 4, name: "Insulin Pens", date: "2024-02-05", quantity: 50, price: 65.25 }
-    ]
-  }
-];
 
 const Distributors = () => {
   const [distributors, setDistributors] = useState<Distributor[]>([]);
@@ -72,8 +49,8 @@ const Distributors = () => {
     if (savedDistributors) {
       setDistributors(JSON.parse(savedDistributors));
     } else {
-      setDistributors(sampleDistributors);
-      localStorage.setItem('distributors', JSON.stringify(sampleDistributors));
+      setDistributors([]);
+      localStorage.setItem('distributors', JSON.stringify([]));
     }
   }, []);
 
@@ -171,6 +148,8 @@ const Distributors = () => {
           : distributor
       )
     );
+    
+    dashboardService.addActivity('distribution', `Distribution: ${newProduct.name} to ${selectedDistributor.name}`);
     
     setNewProduct({
       name: "",

@@ -1,12 +1,11 @@
-
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
-// Import autotable properly (this was the issue)
 import 'jspdf-autotable';
 import autoTable from 'jspdf-autotable';
 
-// Define type for report metadata
+import { dashboardService } from "@/services/DashboardService";
+
 export interface ReportMetadata {
   id: number;
   name: string;
@@ -15,7 +14,6 @@ export interface ReportMetadata {
   path: string;
 }
 
-// Sample data for reports
 export const getSampleData = (type: string) => {
   const today = new Date();
   const currentMonth = today.toLocaleString('default', { month: 'long' });
@@ -58,7 +56,6 @@ export const getSampleData = (type: string) => {
     }));
   }
 
-  // Default monthly summary data
   return Array(12).fill(0).map((_, i) => {
     const month = new Date(currentYear, i, 1).toLocaleString('default', { month: 'long' });
     return {
@@ -71,35 +68,28 @@ export const getSampleData = (type: string) => {
   });
 };
 
-// Export to Excel
 export const exportToExcel = (data: any[], fileName: string) => {
   const worksheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Report');
   
-  // Generate Excel file
   const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
   const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   
-  // Save file
   saveAs(blob, `${fileName}.xlsx`);
 };
 
-// Export to PDF
 export const exportToPDF = (data: any[], fileName: string, title: string): ReportMetadata => {
   const doc = new jsPDF();
   
-  // Add title
   doc.setFontSize(18);
   doc.text(title, 14, 22);
   doc.setFontSize(11);
   doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
   
-  // Get column headers from first data item
   const headers = Object.keys(data[0]);
   const tableData = data.map(item => Object.values(item));
   
-  // Use autoTable directly instead of as a method on doc
   autoTable(doc, {
     head: [headers],
     body: tableData,
@@ -110,10 +100,11 @@ export const exportToPDF = (data: any[], fileName: string, title: string): Repor
     margin: { top: 30 }
   });
   
-  // Save file
   doc.save(`${fileName}.pdf`);
   
-  // Return generated report metadata for storage
+  dashboardService.trackReport();
+  dashboardService.addActivity('report', `Report generated: ${title}`);
+  
   return {
     id: Date.now(),
     name: fileName,
@@ -123,7 +114,6 @@ export const exportToPDF = (data: any[], fileName: string, title: string): Repor
   };
 };
 
-// Generate monthly report
 export const generateMonthlyReport = (format: 'excel' | 'pdf'): ReportMetadata => {
   const today = new Date();
   const currentMonth = today.toLocaleString('default', { month: 'long' });
@@ -143,14 +133,11 @@ export const generateMonthlyReport = (format: 'excel' | 'pdf'): ReportMetadata =
   }
 };
 
-// Generate daily report
 export const generateDailyReport = (format: 'excel' | 'pdf'): ReportMetadata => {
   const today = new Date();
   const formattedDate = today.toLocaleDateString().replace(/\//g, '-');
   
-  // Use sales data type which has date property for daily reports
   const data = getSampleData('sales').filter(item => {
-    // Make sure the item has a date property before trying to access it
     if ('date' in item) {
       return new Date(item.date).toDateString() === today.toDateString();
     }
@@ -171,7 +158,6 @@ export const generateDailyReport = (format: 'excel' | 'pdf'): ReportMetadata => 
   }
 };
 
-// Generate custom report based on type
 export const generateCustomReport = (
   reportType: 'sales' | 'purchase' | 'inventory',
   format: 'excel' | 'pdf'
@@ -196,5 +182,16 @@ export const generateCustomReport = (
       reportName,
       `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report - ${formattedDate}`
     );
+  }
+};
+
+export const generateReport = (data: any, type: string) => {
+  dashboardService.trackReport();
+  dashboardService.addActivity('report', `Report generated: ${type}`);
+  
+  if (type === 'excel') {
+    exportToExcel(data, `Report_${type}`);
+  } else {
+    exportToPDF(data, `Report_${type}`, `Report - ${type}`);
   }
 };

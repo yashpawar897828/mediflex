@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,29 +22,6 @@ interface Buyer {
   notes: string;
   purchases: BuyerPurchase[];
 }
-
-const sampleBuyers: Buyer[] = [
-  {
-    id: 1,
-    name: "John Smith",
-    contact: "+1 (555) 123-4567",
-    notes: "Monthly customer for blood pressure medication",
-    purchases: [
-      { id: 1, medicine: "Lisinopril 10mg", date: "2023-12-15", quantity: 30, price: 15.99 },
-      { id: 2, medicine: "Aspirin 81mg", date: "2023-12-15", quantity: 60, price: 8.49 }
-    ]
-  },
-  {
-    id: 2,
-    name: "Sarah Johnson",
-    contact: "+1 (555) 987-6543",
-    notes: "Diabetic patient, needs regular insulin",
-    purchases: [
-      { id: 3, medicine: "Insulin Glargine", date: "2024-01-05", quantity: 5, price: 125.00 },
-      { id: 4, medicine: "Glucose Test Strips", date: "2024-01-05", quantity: 100, price: 65.99 }
-    ]
-  }
-];
 
 const RegularBuyers = () => {
   const [buyers, setBuyers] = useState<Buyer[]>([]);
@@ -72,8 +48,8 @@ const RegularBuyers = () => {
     if (savedBuyers) {
       setBuyers(JSON.parse(savedBuyers));
     } else {
-      setBuyers(sampleBuyers);
-      localStorage.setItem('regularBuyers', JSON.stringify(sampleBuyers));
+      setBuyers([]);
+      localStorage.setItem('regularBuyers', JSON.stringify([]));
     }
   }, []);
 
