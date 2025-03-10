@@ -13,12 +13,13 @@ export const useOcr = () => {
   useEffect(() => {
     const initWorker = async () => {
       try {
-        // Create worker with logger in the options
-        workerRef.current = await createWorker({
-          logger: m => {
-            if (m.status === "recognizing text") {
-              setOcrProgress(m.progress * 100);
-            }
+        // Create worker instance first
+        workerRef.current = await createWorker();
+        
+        // Set progress callback
+        workerRef.current.setProgressHandler((m: any) => {
+          if (m.status === "recognizing text") {
+            setOcrProgress(m.progress * 100);
           }
         });
         

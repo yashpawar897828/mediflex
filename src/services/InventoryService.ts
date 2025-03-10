@@ -349,7 +349,7 @@ class InventoryService {
     
     if (addedItems.length > 0) {
       dashboardService.addActivity(
-        'inventory', 
+        'distribution', 
         `Added ${addedItems.length} products from order receipt`
       );
     }
