@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { dashboardService } from "@/services/DashboardService";
 import { Distributor, DistributionProduct } from "@/types/distributors";
+import { distributorService } from "@/services/DistributorService";
 import DistributorSearch from "@/components/distributors/DistributorSearch";
 import DistributorForm from "@/components/distributors/DistributorForm";
 import DistributorList from "@/components/distributors/DistributorList";
@@ -30,20 +31,13 @@ const Distributors = () => {
   });
 
   useEffect(() => {
-    const savedDistributors = localStorage.getItem('distributors');
-    if (savedDistributors) {
-      setDistributors(JSON.parse(savedDistributors));
-    } else {
-      setDistributors([]);
-      localStorage.setItem('distributors', JSON.stringify([]));
-    }
+    loadDistributors();
   }, []);
 
-  useEffect(() => {
-    if (distributors.length) {
-      localStorage.setItem('distributors', JSON.stringify(distributors));
-    }
-  }, [distributors]);
+  const loadDistributors = () => {
+    const data = distributorService.getDistributors();
+    setDistributors(data);
+  };
 
   const filteredDistributors = distributors.filter(distributor => 
     distributor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -72,12 +66,8 @@ const Distributors = () => {
       return;
     }
     
-    const distributorId = Math.max(0, ...distributors.map(distributor => distributor.id)) + 1;
-    
-    setDistributors(prev => [
-      ...prev,
-      { id: distributorId, ...newDistributor, products: [] }
-    ]);
+    const newDist = distributorService.saveDistributor(newDistributor);
+    setDistributors(prev => [...prev, newDist]);
     
     resetDistributorForm();
     toast.success("Distributor added successfully");
@@ -86,20 +76,24 @@ const Distributors = () => {
   const handleUpdateDistributor = () => {
     if (!selectedDistributor) return;
     
-    setDistributors(prev => 
-      prev.map(distributor => 
-        distributor.id === selectedDistributor.id 
-          ? { ...distributor, name: newDistributor.name, contact: newDistributor.contact, address: newDistributor.address } 
-          : distributor
-      )
-    );
+    const updated = distributorService.updateDistributor(selectedDistributor.id, newDistributor);
+    
+    if (updated) {
+      setDistributors(prev => 
+        prev.map(distributor => 
+          distributor.id === selectedDistributor.id ? updated : distributor
+        )
+      );
+    }
     
     resetDistributorForm();
     toast.success("Distributor updated successfully");
   };
 
   const handleDeleteDistributor = (id: number) => {
-    setDistributors(prev => prev.filter(distributor => distributor.id !== id));
+    const updatedDistributors = distributors.filter(distributor => distributor.id !== id);
+    localStorage.setItem("distributors", JSON.stringify(updatedDistributors));
+    setDistributors(updatedDistributors);
     toast.success("Distributor deleted successfully");
   };
 
@@ -109,18 +103,15 @@ const Distributors = () => {
       return;
     }
     
-    const productId = Math.max(0, ...selectedDistributor.products.map(p => p.id), 0) + 1;
+    const updated = distributorService.addProductToDistributor(selectedDistributor.id, newProduct);
     
-    setDistributors(prev => 
-      prev.map(distributor => 
-        distributor.id === selectedDistributor.id 
-          ? { 
-              ...distributor, 
-              products: [...distributor.products, { id: productId, ...newProduct }]
-            } 
-          : distributor
-      )
-    );
+    if (updated) {
+      setDistributors(prev => 
+        prev.map(distributor => 
+          distributor.id === selectedDistributor.id ? updated : distributor
+        )
+      );
+    }
     
     dashboardService.addActivity('distribution', `Distribution: ${newProduct.name} to ${selectedDistributor.name}`);
     
@@ -140,7 +131,23 @@ const Distributors = () => {
       )
     );
     
+    // Update localStorage
+    localStorage.setItem("distributors", JSON.stringify(distributors.map(distributor => 
+      distributor.id === distributorId 
+        ? { 
+            ...distributor, 
+            products: distributor.products.filter(p => p.id !== productId)
+          } 
+        : distributor
+    )));
+    
     toast.success("Product deleted successfully");
+  };
+
+  const handleClearDistributors = () => {
+    distributorService.clearDistributors();
+    setDistributors([]);
+    toast.success("All distributors cleared successfully");
   };
 
   const handleEditDistributor = (distributor: Distributor) => {
@@ -189,9 +196,20 @@ const Distributors = () => {
           <h1 className="text-3xl font-bold tracking-tight">Distribution Management</h1>
           <p className="text-muted-foreground">Manage your distributors and their products</p>
         </div>
-        <Button onClick={() => { setIsAddingDistributor(true); setSelectedDistributor(null); }} disabled={isAddingDistributor}>
-          <Plus className="mr-2 h-4 w-4" /> Add Distributor
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleClearDistributors} 
+            variant="outline"
+          >
+            Clear All
+          </Button>
+          <Button 
+            onClick={() => { setIsAddingDistributor(true); setSelectedDistributor(null); }} 
+            disabled={isAddingDistributor}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add Distributor
+          </Button>
+        </div>
       </div>
 
       <DistributorSearch 

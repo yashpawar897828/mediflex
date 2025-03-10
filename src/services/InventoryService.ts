@@ -20,6 +20,14 @@ const STORAGE_KEY = "mediflex_inventory";
 
 // Service to handle inventory data operations
 class InventoryService {
+  // Clear any demo data on initialization
+  constructor() {
+    // Initialize with empty array if not already set
+    if (!localStorage.getItem(STORAGE_KEY)) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+    }
+  }
+
   // Get all inventory items
   getInventory(): InventoryItem[] {
     const storedData = localStorage.getItem(STORAGE_KEY);
@@ -47,6 +55,11 @@ class InventoryService {
     
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...inventory, newItem]));
     return newItem;
+  }
+
+  // Clear all inventory data
+  clearInventory(): void {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
   }
 
   // Update an existing item

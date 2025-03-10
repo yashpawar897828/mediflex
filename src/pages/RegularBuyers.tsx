@@ -9,6 +9,8 @@ import BuyerForm from "@/components/buyers/BuyerForm";
 import BuyersList from "@/components/buyers/BuyersList";
 import { Buyer } from "@/types/buyers";
 
+const BUYERS_STORAGE_KEY = 'regularBuyers';
+
 const RegularBuyers = () => {
   const [buyers, setBuyers] = useState<Buyer[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,20 +24,30 @@ const RegularBuyers = () => {
   });
 
   useEffect(() => {
-    const savedBuyers = localStorage.getItem('regularBuyers');
-    if (savedBuyers) {
-      setBuyers(JSON.parse(savedBuyers));
-    } else {
-      setBuyers([]);
-      localStorage.setItem('regularBuyers', JSON.stringify([]));
-    }
+    loadBuyers();
   }, []);
 
   useEffect(() => {
     if (buyers.length) {
-      localStorage.setItem('regularBuyers', JSON.stringify(buyers));
+      localStorage.setItem(BUYERS_STORAGE_KEY, JSON.stringify(buyers));
     }
   }, [buyers]);
+
+  const loadBuyers = () => {
+    const savedBuyers = localStorage.getItem(BUYERS_STORAGE_KEY);
+    if (savedBuyers) {
+      setBuyers(JSON.parse(savedBuyers));
+    } else {
+      setBuyers([]);
+      localStorage.setItem(BUYERS_STORAGE_KEY, JSON.stringify([]));
+    }
+  };
+
+  const clearBuyers = () => {
+    localStorage.setItem(BUYERS_STORAGE_KEY, JSON.stringify([]));
+    setBuyers([]);
+    toast.success("All buyers cleared successfully");
+  };
 
   const filteredBuyers = buyers.filter(buyer => 
     buyer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -118,9 +130,14 @@ const RegularBuyers = () => {
           <h1 className="text-3xl font-bold tracking-tight">Regular Buyers</h1>
           <p className="text-muted-foreground">Manage your regular customers and their purchases</p>
         </div>
-        <Button onClick={() => { setIsAddingBuyer(true); setSelectedBuyer(null); }} disabled={isAddingBuyer}>
-          <Plus className="mr-2 h-4 w-4" /> Add Buyer
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={clearBuyers} variant="outline">
+            Clear All
+          </Button>
+          <Button onClick={() => { setIsAddingBuyer(true); setSelectedBuyer(null); }} disabled={isAddingBuyer}>
+            <Plus className="mr-2 h-4 w-4" /> Add Buyer
+          </Button>
+        </div>
       </div>
 
       <BuyerSearch 
@@ -152,6 +169,7 @@ const RegularBuyers = () => {
         handleEditBuyer={handleEditBuyer}
         handleDeleteBuyer={handleDeleteBuyer}
         isAddingBuyer={isAddingBuyer}
+        clearBuyers={clearBuyers}
       />
     </div>
   );

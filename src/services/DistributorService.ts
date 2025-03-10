@@ -4,9 +4,16 @@ import { Distributor, DistributionProduct, OrderReceiptData } from "@/types/dist
 import { dashboardService } from "./DashboardService";
 
 // Storage key for distributors data
-const STORAGE_KEY = "mediflex_distributors";
+const STORAGE_KEY = "distributors";
 
 class DistributorService {
+  constructor() {
+    // Initialize with empty array if not already set
+    if (!localStorage.getItem(STORAGE_KEY)) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+    }
+  }
+
   // Get all distributors
   getDistributors(): Distributor[] {
     const storedData = localStorage.getItem(STORAGE_KEY);
@@ -20,6 +27,11 @@ class DistributorService {
     }
   }
 
+  // Clear all distributors
+  clearDistributors(): void {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+  }
+
   // Save distributor
   saveDistributor(distributor: Omit<Distributor, 'id'>): Distributor {
     const distributors = this.getDistributors();
@@ -29,7 +41,8 @@ class DistributorService {
     
     const newDistributor: Distributor = {
       id: newId,
-      ...distributor
+      ...distributor,
+      products: []
     };
     
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...distributors, newDistributor]));

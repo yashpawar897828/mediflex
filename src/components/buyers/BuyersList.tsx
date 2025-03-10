@@ -13,13 +13,15 @@ interface BuyersListProps {
   handleEditBuyer: (buyer: Buyer) => void;
   handleDeleteBuyer: (id: number) => void;
   isAddingBuyer: boolean;
+  clearBuyers?: () => void;
 }
 
 const BuyersList = ({ 
   filteredBuyers, 
   handleEditBuyer, 
   handleDeleteBuyer,
-  isAddingBuyer
+  isAddingBuyer,
+  clearBuyers
 }: BuyersListProps) => {
   const [selectedBuyer, setSelectedBuyer] = useState<Buyer | null>(null);
   const [isAddingPurchase, setIsAddingPurchase] = useState(false);

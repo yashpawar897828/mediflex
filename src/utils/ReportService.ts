@@ -1,3 +1,4 @@
+
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
@@ -13,60 +14,6 @@ export interface ReportMetadata {
   date: string;
   path: string;
 }
-
-export const getSampleData = (type: string) => {
-  const today = new Date();
-  const currentMonth = today.toLocaleString('default', { month: 'long' });
-  const currentYear = today.getFullYear();
-
-  if (type === 'sales') {
-    return Array(30).fill(0).map((_, i) => ({
-      id: i + 1,
-      date: new Date(today.getFullYear(), today.getMonth(), i + 1).toLocaleDateString(),
-      product: `Medicine ${(i % 10) + 1}`,
-      customer: `Customer ${(i % 8) + 1}`,
-      quantity: Math.floor(Math.random() * 10) + 1,
-      price: Math.floor(Math.random() * 100) + 50,
-      total: (Math.floor(Math.random() * 10) + 1) * (Math.floor(Math.random() * 100) + 50),
-    }));
-  }
-
-  if (type === 'purchase') {
-    return Array(20).fill(0).map((_, i) => ({
-      id: i + 1,
-      date: new Date(today.getFullYear(), today.getMonth(), i + 1).toLocaleDateString(),
-      product: `Medicine ${(i % 15) + 1}`,
-      supplier: `Supplier ${(i % 5) + 1}`,
-      quantity: Math.floor(Math.random() * 50) + 10,
-      price: Math.floor(Math.random() * 80) + 20,
-      total: (Math.floor(Math.random() * 50) + 10) * (Math.floor(Math.random() * 80) + 20),
-    }));
-  }
-
-  if (type === 'inventory') {
-    return Array(25).fill(0).map((_, i) => ({
-      id: i + 1,
-      product: `Medicine ${(i % 20) + 1}`,
-      category: `Category ${(i % 5) + 1}`,
-      stock: Math.floor(Math.random() * 100) + 5,
-      reorderLevel: 10,
-      expiryDate: new Date(today.getFullYear(), today.getMonth() + Math.floor(Math.random() * 12), 
-                          Math.floor(Math.random() * 28) + 1).toLocaleDateString(),
-      supplier: `Supplier ${(i % 5) + 1}`,
-    }));
-  }
-
-  return Array(12).fill(0).map((_, i) => {
-    const month = new Date(currentYear, i, 1).toLocaleString('default', { month: 'long' });
-    return {
-      month,
-      salesAmount: Math.floor(Math.random() * 10000) + 5000,
-      purchaseAmount: Math.floor(Math.random() * 8000) + 3000,
-      profit: Math.floor(Math.random() * 3000) + 1000,
-      newCustomers: Math.floor(Math.random() * 50) + 10,
-    };
-  });
-};
 
 export const exportToExcel = (data: any[], fileName: string) => {
   const worksheet = XLSX.utils.json_to_sheet(data);
@@ -117,10 +64,11 @@ export const exportToPDF = (data: any[], fileName: string, title: string): Repor
 export const generateMonthlyReport = (format: 'excel' | 'pdf'): ReportMetadata => {
   const today = new Date();
   const currentMonth = today.toLocaleString('default', { month: 'long' });
-  const data = getSampleData('sales');
+  // Return empty report structure with current date
+  const emptyData = [{ note: "No data available for this period" }];
   
   if (format === 'excel') {
-    exportToExcel(data, `Monthly_Report_${currentMonth}`);
+    exportToExcel(emptyData, `Monthly_Report_${currentMonth}`);
     return {
       id: Date.now(),
       name: `Monthly_Report_${currentMonth}`,
@@ -129,7 +77,7 @@ export const generateMonthlyReport = (format: 'excel' | 'pdf'): ReportMetadata =
       path: `Monthly_Report_${currentMonth}.xlsx`
     };
   } else {
-    return exportToPDF(data, `Monthly_Report_${currentMonth}`, `Monthly Report - ${currentMonth}`);
+    return exportToPDF(emptyData, `Monthly_Report_${currentMonth}`, `Monthly Report - ${currentMonth}`);
   }
 };
 
@@ -137,15 +85,11 @@ export const generateDailyReport = (format: 'excel' | 'pdf'): ReportMetadata => 
   const today = new Date();
   const formattedDate = today.toLocaleDateString().replace(/\//g, '-');
   
-  const data = getSampleData('sales').filter(item => {
-    if ('date' in item) {
-      return new Date(item.date).toDateString() === today.toDateString();
-    }
-    return false;
-  });
+  // Return empty report structure with current date
+  const emptyData = [{ note: "No data available for this period" }];
   
   if (format === 'excel') {
-    exportToExcel(data, `Daily_Report_${formattedDate}`);
+    exportToExcel(emptyData, `Daily_Report_${formattedDate}`);
     return {
       id: Date.now(),
       name: `Daily_Report_${formattedDate}`,
@@ -154,7 +98,7 @@ export const generateDailyReport = (format: 'excel' | 'pdf'): ReportMetadata => 
       path: `Daily_Report_${formattedDate}.xlsx`
     };
   } else {
-    return exportToPDF(data, `Daily_Report_${formattedDate}`, `Daily Report - ${formattedDate}`);
+    return exportToPDF(emptyData, `Daily_Report_${formattedDate}`, `Daily Report - ${formattedDate}`);
   }
 };
 
@@ -162,13 +106,15 @@ export const generateCustomReport = (
   reportType: 'sales' | 'purchase' | 'inventory',
   format: 'excel' | 'pdf'
 ): ReportMetadata => {
-  const data = getSampleData(reportType);
+  // Return empty report structure with current date
+  const emptyData = [{ note: "No data available for this report type" }];
+  
   const today = new Date();
   const formattedDate = today.toLocaleDateString().replace(/\//g, '-');
   const reportName = `${reportType.charAt(0).toUpperCase() + reportType.slice(1)}_Report_${formattedDate}`;
   
   if (format === 'excel') {
-    exportToExcel(data, reportName);
+    exportToExcel(emptyData, reportName);
     return {
       id: Date.now(),
       name: reportName,
@@ -178,7 +124,7 @@ export const generateCustomReport = (
     };
   } else {
     return exportToPDF(
-      data, 
+      emptyData, 
       reportName,
       `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report - ${formattedDate}`
     );

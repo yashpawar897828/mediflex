@@ -126,6 +126,12 @@ const Inventory = () => {
     setSearchTerm(value);
   };
 
+  const handleClearInventory = () => {
+    inventoryService.clearInventory();
+    setInventory([]);
+    toast.success("Inventory cleared successfully");
+  };
+
   const handleCancelForm = () => {
     setIsAddingProduct(false);
     setEditingProduct(null);
@@ -154,12 +160,17 @@ const Inventory = () => {
           <h1 className="text-3xl font-bold tracking-tight">Inventory Management</h1>
           <p className="text-muted-foreground">Manage your product inventory</p>
         </div>
-        <Button 
-          onClick={() => setIsAddingProduct(true)} 
-          disabled={isAddingProduct || !!editingProduct}
-        >
-          <Plus className="mr-2 h-4 w-4" /> Add Product
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleClearInventory} variant="outline">
+            Clear All
+          </Button>
+          <Button 
+            onClick={() => setIsAddingProduct(true)} 
+            disabled={isAddingProduct || !!editingProduct}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add Product
+          </Button>
+        </div>
       </div>
 
       <InventorySearch 
