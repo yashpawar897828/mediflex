@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { BuyerPurchase } from "@/types/buyers";
+import { formatPrice } from "@/utils/buyerUtils";
 
 interface BuyerPurchaseHistoryProps {
   purchases: BuyerPurchase[];
