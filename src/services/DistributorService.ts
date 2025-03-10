@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { Distributor, DistributionProduct, OrderReceiptData } from "@/types/distributors";
 import { dashboardService } from "./DashboardService";
@@ -41,8 +40,7 @@ class DistributorService {
     
     const newDistributor: Distributor = {
       id: newId,
-      ...distributor,
-      products: []
+      ...distributor
     };
     
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...distributors, newDistributor]));

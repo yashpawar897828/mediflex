@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -17,10 +16,11 @@ const Distributors = () => {
   const [isAddingDistributor, setIsAddingDistributor] = useState(false);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   
-  const [newDistributor, setNewDistributor] = useState<Omit<Distributor, 'id' | 'products'>>({
+  const [newDistributor, setNewDistributor] = useState<Omit<Distributor, 'id'>>({
     name: "",
     contact: "",
-    address: ""
+    address: "",
+    products: []
   });
   
   const [newProduct, setNewProduct] = useState<Omit<DistributionProduct, 'id'>>({
@@ -131,7 +131,6 @@ const Distributors = () => {
       )
     );
     
-    // Update localStorage
     localStorage.setItem("distributors", JSON.stringify(distributors.map(distributor => 
       distributor.id === distributorId 
         ? { 
@@ -155,7 +154,8 @@ const Distributors = () => {
     setNewDistributor({
       name: distributor.name,
       contact: distributor.contact,
-      address: distributor.address
+      address: distributor.address,
+      products: distributor.products
     });
     setIsAddingDistributor(true);
   };
@@ -166,7 +166,8 @@ const Distributors = () => {
     setNewDistributor({
       name: "",
       contact: "",
-      address: ""
+      address: "",
+      products: []
     });
   };
 

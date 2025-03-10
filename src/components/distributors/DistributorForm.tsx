@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Distributor } from "@/types/distributors";
 
 interface DistributorFormProps {
-  newDistributor: Omit<Distributor, 'id' | 'products'>;
+  newDistributor: Omit<Distributor, 'id'>;
   selectedDistributor: Distributor | null;
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   handleAddDistributor: () => void;
