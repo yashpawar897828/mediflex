@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -8,6 +7,7 @@ import BuyerSearch from "@/components/buyers/BuyerSearch";
 import BuyerForm from "@/components/buyers/BuyerForm";
 import BuyersList from "@/components/buyers/BuyersList";
 import { Buyer } from "@/types/buyers";
+import { isRegularBuyer } from "@/utils/buyerUtils";
 
 const BUYERS_STORAGE_KEY = 'regularBuyers';
 
@@ -36,7 +36,9 @@ const RegularBuyers = () => {
   const loadBuyers = () => {
     const savedBuyers = localStorage.getItem(BUYERS_STORAGE_KEY);
     if (savedBuyers) {
-      setBuyers(JSON.parse(savedBuyers));
+      const allBuyers: Buyer[] = JSON.parse(savedBuyers);
+      const regularBuyers = allBuyers.filter(buyer => isRegularBuyer(buyer.purchases));
+      setBuyers(regularBuyers);
     } else {
       setBuyers([]);
       localStorage.setItem(BUYERS_STORAGE_KEY, JSON.stringify([]));
@@ -82,7 +84,6 @@ const RegularBuyers = () => {
     setIsAddingBuyer(false);
     toast.success("Buyer added successfully");
     
-    // Track activity in dashboard
     dashboardService.addActivity('distribution', `Added new buyer: ${newBuyer.name}`);
   };
 
@@ -128,7 +129,7 @@ const RegularBuyers = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Regular Buyers</h1>
-          <p className="text-muted-foreground">Manage your regular customers and their purchases</p>
+          <p className="text-muted-foreground">Manage your regular customers that have purchased more than 3 times</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={clearBuyers} variant="outline">

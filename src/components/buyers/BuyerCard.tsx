@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +6,7 @@ import { toast } from "sonner";
 import BuyerPurchaseHistory from "./BuyerPurchaseHistory";
 import AddPurchaseForm from "./AddPurchaseForm";
 import { Buyer, BuyerPurchase } from "@/types/buyers";
-import { formatPrice, calculateTotalSpend } from "@/utils/buyerUtils";
+import { formatPrice, calculateTotalSpend, isRegularBuyer } from "@/utils/buyerUtils";
 
 interface BuyerCardProps {
   buyer: Buyer;
@@ -53,16 +52,21 @@ const BuyerCard = ({
       ? Math.max(...selectedBuyer.purchases.map(p => p.id)) + 1 
       : 1;
     
-    setBuyers(prev => 
-      prev.map(b => 
-        b.id === selectedBuyer.id 
-          ? { 
-              ...b, 
-              purchases: [...b.purchases, { id: purchaseId, ...newPurchase }]
-            } 
-          : b
-      )
+    const updatedBuyers = buyers.map(b => 
+      b.id === selectedBuyer.id 
+        ? { 
+            ...b, 
+            purchases: [...b.purchases, { id: purchaseId, ...newPurchase }]
+          } 
+        : b
     );
+    
+    setBuyers(updatedBuyers);
+    
+    const updatedBuyer = updatedBuyers.find(b => b.id === selectedBuyer.id);
+    if (updatedBuyer && isRegularBuyer(updatedBuyer.purchases) && !isRegularBuyer(selectedBuyer.purchases)) {
+      toast.success(`${updatedBuyer.name} is now a regular buyer!`);
+    }
     
     setNewPurchase({
       medicine: "",

@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { Distributor, DistributionProduct, OrderReceiptData } from "@/types/distributors";
 import { dashboardService } from "./DashboardService";
@@ -19,11 +20,20 @@ class DistributorService {
     if (!storedData) return [];
     
     try {
-      return JSON.parse(storedData);
+      const allDistributors = JSON.parse(storedData);
+      // Filter only regular distributors (those with more than 3 products)
+      return allDistributors.filter(
+        (distributor: Distributor) => distributor.products.length > 3
+      );
     } catch (error) {
       console.error("Error parsing distributors data:", error);
       return [];
     }
+  }
+
+  // Check if a distributor is regular (has distributed more than 3 products)
+  isRegularDistributor(distributor: Distributor): boolean {
+    return distributor.products.length > 3;
   }
 
   // Clear all distributors
@@ -33,7 +43,7 @@ class DistributorService {
 
   // Save distributor
   saveDistributor(distributor: Omit<Distributor, 'id'>): Distributor {
-    const distributors = this.getDistributors();
+    const distributors = this.getAllDistributors(); // Use getAllDistributors to get all, not just regular ones
     const newId = distributors.length > 0 
       ? Math.max(...distributors.map(item => item.id)) + 1 
       : 1;
@@ -48,9 +58,22 @@ class DistributorService {
     return newDistributor;
   }
 
+  // Get all distributors (regular and non-regular)
+  getAllDistributors(): Distributor[] {
+    const storedData = localStorage.getItem(STORAGE_KEY);
+    if (!storedData) return [];
+    
+    try {
+      return JSON.parse(storedData);
+    } catch (error) {
+      console.error("Error parsing distributors data:", error);
+      return [];
+    }
+  }
+
   // Update distributor
   updateDistributor(id: number, updates: Partial<Distributor>): Distributor | null {
-    const distributors = this.getDistributors();
+    const distributors = this.getAllDistributors();
     const distributorIndex = distributors.findIndex(dist => dist.id === id);
     
     if (distributorIndex === -1) return null;
@@ -71,7 +94,7 @@ class DistributorService {
     distributorId: number, 
     product: Omit<DistributionProduct, 'id'>
   ): Distributor | null {
-    const distributors = this.getDistributors();
+    const distributors = this.getAllDistributors();
     const distributorIndex = distributors.findIndex(dist => dist.id === distributorId);
     
     if (distributorIndex === -1) return null;
@@ -87,6 +110,14 @@ class DistributorService {
     
     distributors[distributorIndex].products.push(newProduct);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(distributors));
+    
+    // Check if this distributor has become a regular with this new product
+    const wasRegular = this.isRegularDistributor({...distributors[distributorIndex], products: [...distributors[distributorIndex].products.filter(p => p.id !== newProductId)]});
+    const isNowRegular = this.isRegularDistributor(distributors[distributorIndex]);
+    
+    if (!wasRegular && isNowRegular) {
+      toast.success(`${distributors[distributorIndex].name} is now a regular distributor!`);
+    }
     
     // Track distribution activity
     dashboardService.addActivity(

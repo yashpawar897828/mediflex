@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -35,6 +36,7 @@ const Distributors = () => {
   }, []);
 
   const loadDistributors = () => {
+    // This will now only load regular distributors thanks to our service update
     const data = distributorService.getDistributors();
     setDistributors(data);
   };
@@ -67,7 +69,11 @@ const Distributors = () => {
     }
     
     const newDist = distributorService.saveDistributor(newDistributor);
-    setDistributors(prev => [...prev, newDist]);
+    
+    // Only show the distributor in the list if it's a regular distributor
+    if (distributorService.isRegularDistributor(newDist)) {
+      setDistributors(prev => [...prev, newDist]);
+    }
     
     resetDistributorForm();
     toast.success("Distributor added successfully");
@@ -195,7 +201,7 @@ const Distributors = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Distribution Management</h1>
-          <p className="text-muted-foreground">Manage your distributors and their products</p>
+          <p className="text-muted-foreground">Manage your regular distributors that have provided more than 3 products</p>
         </div>
         <div className="flex gap-2">
           <Button 
@@ -250,7 +256,9 @@ const Distributors = () => {
       ) : (
         <div className="text-center py-10 border rounded-md bg-muted/10">
           <div className="text-muted-foreground">
-            {searchTerm ? "No distributors found matching your search" : "No distributors added yet"}
+            {searchTerm 
+              ? "No regular distributors found matching your search" 
+              : "No regular distributors added yet (distributors must provide more than 3 products)"}
           </div>
         </div>
       )}
