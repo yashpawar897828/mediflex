@@ -13,7 +13,8 @@ interface BuyersListProps {
   handleEditBuyer: (buyer: Buyer) => void;
   handleDeleteBuyer: (id: number) => void;
   isAddingBuyer: boolean;
-  clearBuyers?: () => void;
+  buyers: Buyer[];
+  setBuyers: React.Dispatch<React.SetStateAction<Buyer[]>>;
 }
 
 const BuyersList = ({ 
@@ -21,7 +22,8 @@ const BuyersList = ({
   handleEditBuyer, 
   handleDeleteBuyer,
   isAddingBuyer,
-  clearBuyers
+  buyers,
+  setBuyers
 }: BuyersListProps) => {
   const [selectedBuyer, setSelectedBuyer] = useState<Buyer | null>(null);
   const [isAddingPurchase, setIsAddingPurchase] = useState(false);
@@ -30,25 +32,6 @@ const BuyersList = ({
     date: new Date().toISOString().split('T')[0],
     quantity: 1,
     price: 0
-  });
-  const [buyers, setBuyers] = useState<Buyer[]>([]);
-
-  // Load buyers from localStorage
-  useState(() => {
-    const savedBuyers = localStorage.getItem('regularBuyers');
-    if (savedBuyers) {
-      setBuyers(JSON.parse(savedBuyers));
-    } else {
-      setBuyers([]);
-      localStorage.setItem('regularBuyers', JSON.stringify([]));
-    }
-  });
-
-  // Save buyers to localStorage when updated
-  useState(() => {
-    if (buyers.length) {
-      localStorage.setItem('regularBuyers', JSON.stringify(buyers));
-    }
   });
 
   const handlePurchaseInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,7 +48,9 @@ const BuyersList = ({
       return;
     }
     
-    const purchaseId = Math.max(0, ...selectedBuyer.purchases.map(p => p.id), 0) + 1;
+    const purchaseId = selectedBuyer.purchases.length > 0 
+      ? Math.max(...selectedBuyer.purchases.map(p => p.id)) + 1 
+      : 1;
     
     setBuyers(prev => 
       prev.map(buyer => 

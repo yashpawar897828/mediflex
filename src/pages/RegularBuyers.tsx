@@ -68,7 +68,7 @@ const RegularBuyers = () => {
       return;
     }
     
-    const buyerId = Math.max(0, ...buyers.map(buyer => buyer.id)) + 1;
+    const buyerId = buyers.length > 0 ? Math.max(...buyers.map(buyer => buyer.id)) + 1 : 1;
     const newBuyerRecord = { id: buyerId, ...newBuyer, purchases: [] };
     
     setBuyers(prev => [...prev, newBuyerRecord]);
@@ -169,7 +169,8 @@ const RegularBuyers = () => {
         handleEditBuyer={handleEditBuyer}
         handleDeleteBuyer={handleDeleteBuyer}
         isAddingBuyer={isAddingBuyer}
-        clearBuyers={clearBuyers}
+        buyers={buyers}
+        setBuyers={setBuyers}
       />
     </div>
   );
