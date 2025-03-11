@@ -21,21 +21,22 @@ export const useOcr = () => {
           await workerRef.current.terminate();
         }
         
-        // Create worker first
-        workerRef.current = await createWorker();
-        
-        // Then set progress handler separately
-        if (workerRef.current) {
-          workerRef.current.setProgressHandler((m: any) => {
+        // Create worker with progress handler in the options
+        workerRef.current = await createWorker({
+          logger: m => {
             if (m.status === "recognizing text" && isMounted) {
               setOcrProgress(m.progress * 100);
             }
-          });
-          
-          if (isMounted) {
-            setIsReady(true);
-            console.log("OCR worker initialized successfully");
           }
+        });
+        
+        // Initialize worker language
+        await workerRef.current.loadLanguage('eng');
+        await workerRef.current.initialize('eng');
+        
+        if (isMounted) {
+          setIsReady(true);
+          console.log("OCR worker initialized successfully");
         }
       } catch (error) {
         console.error("Failed to initialize OCR worker:", error);
@@ -67,6 +68,8 @@ export const useOcr = () => {
     }
 
     setIsProcessing(true);
+    setOcrProgress(0);
+    
     try {
       const result = await workerRef.current.recognize(imageData);
       return result.data.text;
