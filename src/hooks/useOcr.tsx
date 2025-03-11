@@ -13,14 +13,15 @@ export const useOcr = () => {
   useEffect(() => {
     const initWorker = async () => {
       try {
-        // Create worker instance with progress callback in the options
+        // Create worker instance with progress callback
+        // We need to cast the options to any due to TypeScript type limitations
         workerRef.current = await createWorker({
-          logger: m => {
+          logger: (m: any) => {
             if (m.status === "recognizing text") {
               setOcrProgress(m.progress * 100);
             }
           }
-        });
+        } as any);
         
         // Initialize worker with English language
         await workerRef.current.loadLanguage("eng");
