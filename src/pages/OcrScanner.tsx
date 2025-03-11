@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +23,7 @@ const OcrScanner = () => {
   const [searchResults, setSearchResults] = useState<InventoryItem[]>([]);
   const [productData, setProductData] = useState<Partial<InventoryItem> | null>(null);
   const [orderData, setOrderData] = useState<OrderReceiptData | null>(null);
-  const { isProcessing, ocrProgress, processImage } = useOcr();
+  const { isProcessing, ocrProgress, processImage, isReady } = useOcr();
   const navigate = useNavigate();
 
   const handleCapture = () => {
@@ -38,6 +37,11 @@ const OcrScanner = () => {
   const handleProcessImage = async () => {
     if (!capturedImage && !text) {
       toast.error("No image to process. Please capture or upload an image first.");
+      return;
+    }
+
+    if (!isReady) {
+      toast.error("OCR engine is still initializing. Please wait a moment and try again.");
       return;
     }
 
@@ -202,6 +206,7 @@ const OcrScanner = () => {
           <CardTitle>OCR Document Scanner</CardTitle>
           <CardDescription>
             Scan documents to extract text or search for information
+            {!isReady && <span className="ml-2 text-amber-500">(OCR engine initializing...)</span>}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -400,16 +405,18 @@ const OcrScanner = () => {
             
             <Button 
               onClick={handleProcessImage} 
-              disabled={isProcessing || (!capturedImage && !text)}
+              disabled={isProcessing || (!capturedImage && !text) || !isReady}
             >
               <ScanText className="mr-2 h-4 w-4" />
               {isProcessing 
                 ? "Processing..." 
-                : mode === "store" 
-                  ? "Extract Data" 
-                  : mode === "order" 
-                    ? "Extract Order Data" 
-                    : "Search Inventory"}
+                : !isReady
+                  ? "Initializing OCR..." 
+                  : mode === "store" 
+                    ? "Extract Data" 
+                    : mode === "order" 
+                      ? "Extract Order Data" 
+                      : "Search Inventory"}
             </Button>
           </div>
         </CardContent>

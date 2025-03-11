@@ -8,34 +8,43 @@ export const useOcr = () => {
   const [ocrProgress, setOcrProgress] = useState(0);
   // Use any type to avoid TypeScript errors with the Tesseract API
   const workerRef = useRef<any>(null);
+  const [isReady, setIsReady] = useState(false);
 
   // Initialize Tesseract worker
   useEffect(() => {
+    let isMounted = true;
+
     const initWorker = async () => {
       try {
-        // Create a function outside the worker options that updates progress
-        const progressCallback = (m: any) => {
-          if (m.status === "recognizing text") {
+        // Clear any existing worker
+        if (workerRef.current) {
+          await workerRef.current.terminate();
+        }
+
+        // Define progress callback function
+        const progressHandler = (m: any) => {
+          if (m.status === "recognizing text" && isMounted) {
             setOcrProgress(m.progress * 100);
           }
         };
         
-        // Create worker instance with logger option
-        workerRef.current = await createWorker();
+        // Create worker with proper options
+        workerRef.current = await createWorker({
+          logger: progressHandler
+        });
         
-        // Set logger after worker is created
-        if (workerRef.current) {
-          workerRef.current.logger = progressCallback;
+        // Workers now come pre-loaded with languages and pre-initialized
+        // No need to call loadLanguage or initialize
+
+        if (isMounted) {
+          setIsReady(true);
+          console.log("OCR worker initialized successfully");
         }
-        
-        // Initialize worker with English language
-        await workerRef.current.loadLanguage("eng");
-        await workerRef.current.initialize("eng");
-        
-        console.log("OCR worker initialized successfully");
       } catch (error) {
         console.error("Failed to initialize OCR worker:", error);
-        toast.error("Failed to initialize OCR engine. Please try again.");
+        if (isMounted) {
+          toast.error("Failed to initialize OCR engine. Please try again.");
+        }
       }
     };
 
@@ -43,6 +52,7 @@ export const useOcr = () => {
 
     // Cleanup worker on component unmount
     return () => {
+      isMounted = false;
       if (workerRef.current) {
         try {
           workerRef.current.terminate();
@@ -54,7 +64,7 @@ export const useOcr = () => {
   }, []);
 
   const processImage = async (imageData: string) => {
-    if (!workerRef.current) {
+    if (!workerRef.current || !isReady) {
       toast.error("OCR engine is not ready yet. Please try again in a moment.");
       return null;
     }
@@ -76,6 +86,7 @@ export const useOcr = () => {
   return {
     isProcessing,
     ocrProgress,
-    processImage
+    processImage,
+    isReady
   };
 };
