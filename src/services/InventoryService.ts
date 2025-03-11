@@ -1,7 +1,6 @@
-
 import { toast } from "sonner";
 import { dashboardService } from "./DashboardService";
-import { OrderReceiptData } from "@/types/distributors";
+import { OrderReceiptData, PatientRecipient, Medicine } from "@/types/distributors";
 
 // Define the inventory item interface for use throughout the app
 export interface InventoryItem {
@@ -108,68 +107,198 @@ class InventoryService {
     return item;
   }
 
-  // Parse OCR text to extract product information
-  parseOcrText(text: string): Partial<InventoryItem> {
+  // New method to parse patient and medicines information
+  parsePatientMedicines(text: string): PatientRecipient {
     // Track OCR scan in the dashboard
     dashboardService.trackOcrScan();
-    dashboardService.addActivity('ocr', `OCR scan: Document processed`);
+    dashboardService.addActivity('ocr', `OCR scan: Patient document processed`);
     
-    // This is a simple implementation - in a real app this would be more sophisticated
     const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
     
-    // Try to extract product details from OCR text
-    let productData: Partial<InventoryItem> = {
+    // Initialize patient data
+    let patientData: PatientRecipient = {
       name: "",
-      batch: "",
-      expiry: "",
-      price: 0,
-      stock: 1
+      contact: "",
+      medicines: []
     };
     
-    // Basic parsing logic - looks for common patterns in text
-    for (const line of lines) {
-      // Look for batch numbers (usually has "batch" or "lot" in it)
-      if (line.toLowerCase().includes('batch') || line.toLowerCase().includes('lot')) {
-        const batchMatch = line.match(/[A-Z0-9]{5,}/);
-        if (batchMatch) productData.batch = batchMatch[0];
-      }
-      
-      // Look for expiry dates
-      const dateMatch = line.match(/\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/);
-      if (dateMatch && !productData.expiry) {
-        // Try to convert to YYYY-MM-DD format for the input
-        try {
-          const parts = dateMatch[0].split(/[\/\-\.]/);
-          if (parts.length === 3) {
-            let year = parts[2];
-            if (year.length === 2) year = `20${year}`;
-            const month = parts[1].padStart(2, '0');
-            const day = parts[0].padStart(2, '0');
-            productData.expiry = `${year}-${month}-${day}`;
-          }
-        } catch (e) {
-          console.error("Failed to parse date:", e);
+    let currentMedicine: Partial<Medicine> = {};
+    let inMedicinesList = false;
+    
+    // Try to find patient name - usually at the top of the document
+    for (let i = 0; i < Math.min(5, lines.length); i++) {
+      const line = lines[i];
+      // Look for name indicators
+      if (line.toLowerCase().includes('patient') || line.toLowerCase().includes('name')) {
+        // Extract name after "patient:" or "name:"
+        const nameMatch = line.match(/(?:patient|name)[:\s]+([^,]+)/i);
+        if (nameMatch && nameMatch[1]) {
+          patientData.name = nameMatch[1].trim();
+          break;
         }
       }
-      
-      // Look for price
-      const priceMatch = line.match(/[\$£€]?\s*\d+[.,]\d{2}/);
-      if (priceMatch && productData.price === 0) {
-        const price = priceMatch[0].replace(/[\$£€\s]/g, '').replace(',', '.');
-        productData.price = parseFloat(price);
-      }
-      
-      // If we haven't found a name yet and line is not too long, use it as the product name
-      if (!productData.name && line.length > 3 && line.length < 50 &&
-          !line.match(/batch|lot|exp|price|\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/i)) {
-        productData.name = line;
+      // If we haven't found a name and the line isn't too long, use it as patient name
+      else if (!patientData.name && line.length > 3 && line.length < 40) {
+        patientData.name = line;
+        break;
       }
     }
     
-    return productData;
+    // Look for contact info
+    for (const line of lines) {
+      if (line.toLowerCase().includes('contact') || 
+          line.toLowerCase().includes('phone') || 
+          line.toLowerCase().includes('tel') ||
+          line.match(/\+?\d{10,}/)) {
+        
+        const phoneMatch = line.match(/\+?[\d\s\-]{10,}/);
+        if (phoneMatch) {
+          patientData.contact = phoneMatch[0].trim();
+          break;
+        }
+      }
+    }
+    
+    // Look for medicine list indicators
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].toLowerCase();
+      
+      if (line.includes('medicine') || 
+          line.includes('prescription') || 
+          line.includes('medication') ||
+          line.includes('drug')) {
+        inMedicinesList = true;
+        continue;
+      }
+      
+      if (inMedicinesList) {
+        // Look for batch numbers
+        const batchMatch = lines[i].match(/batch[:\s]+([\w\d-]+)/i) || 
+                           lines[i].match(/lot[:\s]+([\w\d-]+)/i);
+        
+        // Look for expiry date
+        const expiryMatch = lines[i].match(/exp(?:iry)?[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i) ||
+                            lines[i].match(/\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/);
+        
+        // Look for quantity
+        const qtyMatch = lines[i].match(/qty[:\s]+(\d+)/i) || 
+                         lines[i].match(/quantity[:\s]+(\d+)/i) ||
+                         lines[i].match(/(\d+)\s+(?:tablet|capsule|pill|dose)/i);
+        
+        // Look for price
+        const priceMatch = lines[i].match(/(?:price|cost)[:\s]+[\$₹£€]?\s*(\d+(?:[.,]\d{1,2})?)/i) ||
+                           lines[i].match(/[\$₹£€]\s*(\d+(?:[.,]\d{1,2})?)/);
+        
+        // If we have some medicine-related info on this line
+        if (batchMatch || expiryMatch || qtyMatch || priceMatch) {
+          // If we already have a medicine name, save it
+          if (currentMedicine.name) {
+            if (batchMatch) currentMedicine.batch = batchMatch[1];
+            if (expiryMatch) {
+              try {
+                const dateParts = expiryMatch[1].split(/[\/\-\.]/);
+                if (dateParts.length === 3) {
+                  let year = dateParts[2];
+                  if (year.length === 2) year = `20${year}`;
+                  const month = dateParts[1].padStart(2, '0');
+                  const day = dateParts[0].padStart(2, '0');
+                  currentMedicine.expiry = `${year}-${month}-${day}`;
+                }
+              } catch (e) {
+                console.error("Failed to parse expiry date:", e);
+              }
+            }
+            if (qtyMatch) currentMedicine.quantity = parseInt(qtyMatch[1]);
+            if (priceMatch) currentMedicine.price = parseFloat(priceMatch[1].replace(',', '.'));
+            
+            // Add the medicine to the list
+            patientData.medicines.push(currentMedicine as Medicine);
+            currentMedicine = {};
+          }
+          // If no medicine name yet, store the data and wait for a name
+          else {
+            if (batchMatch) currentMedicine.batch = batchMatch[1];
+            if (expiryMatch) {
+              try {
+                const dateParts = expiryMatch[1].split(/[\/\-\.]/);
+                if (dateParts.length === 3) {
+                  let year = dateParts[2];
+                  if (year.length === 2) year = `20${year}`;
+                  const month = dateParts[1].padStart(2, '0');
+                  const day = dateParts[0].padStart(2, '0');
+                  currentMedicine.expiry = `${year}-${month}-${day}`;
+                }
+              } catch (e) {
+                console.error("Failed to parse expiry date:", e);
+              }
+            }
+            if (qtyMatch) currentMedicine.quantity = parseInt(qtyMatch[1]);
+            if (priceMatch) currentMedicine.price = parseFloat(priceMatch[1].replace(',', '.'));
+          }
+        }
+        // If line doesn't have specific medicine details, it might be a medicine name
+        else if (lines[i].length > 3 && lines[i].length < 50) {
+          // If we already have a medicine with details but no name, use this line as the name
+          if (Object.keys(currentMedicine).length > 0 && !currentMedicine.name) {
+            currentMedicine.name = lines[i];
+            patientData.medicines.push(currentMedicine as Medicine);
+            currentMedicine = {};
+          }
+          // Otherwise, start a new medicine
+          else {
+            // Save any previous medicine
+            if (currentMedicine.name) {
+              patientData.medicines.push({
+                name: currentMedicine.name,
+                quantity: currentMedicine.quantity || 1,
+                price: currentMedicine.price || 0,
+                batch: currentMedicine.batch,
+                expiry: currentMedicine.expiry
+              });
+            }
+            
+            // Start a new medicine
+            currentMedicine = { name: lines[i] };
+          }
+        }
+      }
+    }
+    
+    // Add any final medicine that wasn't added
+    if (currentMedicine.name) {
+      patientData.medicines.push({
+        name: currentMedicine.name,
+        quantity: currentMedicine.quantity || 1,
+        price: currentMedicine.price || 0,
+        batch: currentMedicine.batch,
+        expiry: currentMedicine.expiry
+      });
+    }
+    
+    // If no medicines were found with structured approach, try a simpler approach
+    if (patientData.medicines.length === 0) {
+      // Look for possible medicine names (lines that aren't patient info and have reasonable length)
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].length > 3 && lines[i].length < 50 && 
+            !lines[i].toLowerCase().includes('patient') &&
+            !lines[i].toLowerCase().includes('name') &&
+            !lines[i].toLowerCase().includes('contact') &&
+            !lines[i].toLowerCase().includes('phone') &&
+            !lines[i].match(/\+?\d{10,}/)) {
+          
+          patientData.medicines.push({
+            name: lines[i],
+            quantity: 1,
+            price: 0
+          });
+        }
+      }
+    }
+    
+    return patientData;
   }
 
-  // Parse OCR text specifically for order receipts
+  // Enhanced method to parse order receipts with all required fields
   parseOrderReceipt(text: string): OrderReceiptData {
     // Track OCR scan in the dashboard
     dashboardService.trackOcrScan();
@@ -246,6 +375,14 @@ class InventoryService {
         }
       }
       
+      // Look for batch numbers
+      const batchMatch = line.match(/batch[:\s]+([\w\d-]+)/i) || 
+                         line.match(/lot[:\s]+([\w\d-]+)/i) ||
+                         line.match(/b\/no[:\s]+([\w\d-]+)/i);
+      
+      // Look for expiry dates
+      const expiryMatch = line.match(/exp(?:iry)?[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i);
+      
       // Check for product list indicators
       if (line.toLowerCase().includes("item") && 
           (line.toLowerCase().includes("qty") || line.toLowerCase().includes("quantity")) && 
@@ -257,16 +394,34 @@ class InventoryService {
       // Parse products after we've identified we're in the product list
       if (inProductList) {
         // Detect if this line contains product information
-        const priceMatch = line.match(/[\$£€]?\s*\d+[.,]\d{2}/);
+        const priceMatch = line.match(/[\$₹£€]?\s*\d+[.,]\d{2}/);
         const qtyMatch = line.match(/\b\d+\b/);  // Simple quantity pattern
         
         if (priceMatch) {
           // Price found, this might be a product line
-          const price = parseFloat(priceMatch[0].replace(/[\$£€\s]/g, '').replace(',', '.'));
+          const price = parseFloat(priceMatch[0].replace(/[\$₹£€\s]/g, '').replace(',', '.'));
           
           // If we already have partial product info, save it and start a new one
           if (currentProduct.name) {
             currentProduct.price = price;
+            
+            // Try to extract batch and expiry if they exist
+            if (batchMatch) currentProduct.batch = batchMatch[1];
+            if (expiryMatch) {
+              try {
+                const dateParts = expiryMatch[1].split(/[\/\-\.]/);
+                if (dateParts.length === 3) {
+                  let year = dateParts[2];
+                  if (year.length === 2) year = `20${year}`;
+                  const month = dateParts[1].padStart(2, '0');
+                  const day = dateParts[0].padStart(2, '0');
+                  currentProduct.expiry = `${year}-${month}-${day}`;
+                }
+              } catch (e) {
+                console.error("Failed to parse expiry date:", e);
+              }
+            }
+            
             orderData.products.push({...currentProduct});
             currentProduct = {};
           } else {
@@ -276,6 +431,23 @@ class InventoryService {
               quantity: qtyMatch ? parseInt(qtyMatch[0]) : 1,
               name: line.replace(priceMatch[0], '').trim().replace(/\b\d+\b/, '').trim()
             };
+            
+            // Try to extract batch and expiry if they exist
+            if (batchMatch) currentProduct.batch = batchMatch[1];
+            if (expiryMatch) {
+              try {
+                const dateParts = expiryMatch[1].split(/[\/\-\.]/);
+                if (dateParts.length === 3) {
+                  let year = dateParts[2];
+                  if (year.length === 2) year = `20${year}`;
+                  const month = dateParts[1].padStart(2, '0');
+                  const day = dateParts[0].padStart(2, '0');
+                  currentProduct.expiry = `${year}-${month}-${day}`;
+                }
+              } catch (e) {
+                console.error("Failed to parse expiry date:", e);
+              }
+            }
             
             // Check if we have enough info to save this product immediately
             if (currentProduct.name) {
@@ -289,9 +461,43 @@ class InventoryService {
             quantity: parseInt(qtyMatch[0]),
             name: line.replace(/\b\d+\b/, '').trim()
           };
+          
+          // Try to extract batch and expiry if they exist
+          if (batchMatch) currentProduct.batch = batchMatch[1];
+          if (expiryMatch) {
+            try {
+              const dateParts = expiryMatch[1].split(/[\/\-\.]/);
+              if (dateParts.length === 3) {
+                let year = dateParts[2];
+                if (year.length === 2) year = `20${year}`;
+                const month = dateParts[1].padStart(2, '0');
+                const day = dateParts[0].padStart(2, '0');
+                currentProduct.expiry = `${year}-${month}-${day}`;
+              }
+            } catch (e) {
+              console.error("Failed to parse expiry date:", e);
+            }
+          }
         } else if (!priceMatch && !qtyMatch && !currentProduct.name) {
           // This might be just the product name
           currentProduct.name = line.trim();
+          
+          // Try to extract batch and expiry if they exist
+          if (batchMatch) currentProduct.batch = batchMatch[1];
+          if (expiryMatch) {
+            try {
+              const dateParts = expiryMatch[1].split(/[\/\-\.]/);
+              if (dateParts.length === 3) {
+                let year = dateParts[2];
+                if (year.length === 2) year = `20${year}`;
+                const month = dateParts[1].padStart(2, '0');
+                const day = dateParts[0].padStart(2, '0');
+                currentProduct.expiry = `${year}-${month}-${day}`;
+              }
+            } catch (e) {
+              console.error("Failed to parse expiry date:", e);
+            }
+          }
         }
       }
     }
@@ -307,11 +513,16 @@ class InventoryService {
     if (orderData.products.length === 0) {
       // Look for lines that might contain product info (has numbers and text)
       for (const line of lines) {
-        const priceMatch = line.match(/[\$£€]?\s*\d+[.,]\d{2}/);
+        const priceMatch = line.match(/[\$₹£€]?\s*\d+[.,]\d{2}/);
         const qtyMatch = line.match(/\b\d+\b/);
+        const batchMatch = line.match(/batch[:\s]+([\w\d-]+)/i) || 
+                           line.match(/lot[:\s]+([\w\d-]+)/i) ||
+                           line.match(/b\/no[:\s]+([\w\d-]+)/i);
+        const expiryMatch = line.match(/exp(?:iry)?[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i) || 
+                            line.match(/\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/);
         
-        if (priceMatch && line.length > 10) {
-          const price = parseFloat(priceMatch[0].replace(/[\$£€\s]/g, '').replace(',', '.'));
+        if ((priceMatch || qtyMatch) && line.length > 10) {
+          const price = priceMatch ? parseFloat(priceMatch[0].replace(/[\$₹£€\s]/g, '').replace(',', '.')) : 0;
           const quantity = qtyMatch ? parseInt(qtyMatch[0]) : 1;
           let name = line;
           
@@ -323,11 +534,30 @@ class InventoryService {
           
           // If there's still some text left, it might be a product name
           if (name.length > 3) {
-            orderData.products.push({
+            const product: any = {
               name: name,
               price: price,
               quantity: quantity
-            });
+            };
+            
+            // Add batch and expiry if found
+            if (batchMatch) product.batch = batchMatch[1];
+            if (expiryMatch) {
+              try {
+                const dateParts = expiryMatch[0].split(/[\/\-\.]/);
+                if (dateParts.length === 3) {
+                  let year = dateParts[2];
+                  if (year.length === 2) year = `20${year}`;
+                  const month = dateParts[1].padStart(2, '0');
+                  const day = dateParts[0].padStart(2, '0');
+                  product.expiry = `${year}-${month}-${day}`;
+                }
+              } catch (e) {
+                console.error("Failed to parse expiry date:", e);
+              }
+            }
+            
+            orderData.products.push(product);
           }
         }
       }
@@ -349,7 +579,7 @@ class InventoryService {
         const newItem = this.saveItem({
           name: product.name,
           batch: product.batch || `${batchPrefix}${timestamp}${addedItems.length}`,
-          expiry: orderData.date || new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default 6 months expiry
+          expiry: product.expiry || orderData.date || new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default 6 months expiry
           price: product.price || 0,
           stock: product.quantity || 1,
           distributorId: distributorId,

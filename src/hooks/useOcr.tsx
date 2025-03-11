@@ -20,25 +20,22 @@ export const useOcr = () => {
         if (workerRef.current) {
           await workerRef.current.terminate();
         }
-
-        // Define progress callback function
-        const progressHandler = (m: any) => {
-          if (m.status === "recognizing text" && isMounted) {
-            setOcrProgress(m.progress * 100);
+        
+        // Create worker first
+        workerRef.current = await createWorker();
+        
+        // Then set progress handler separately
+        if (workerRef.current) {
+          workerRef.current.setProgressHandler((m: any) => {
+            if (m.status === "recognizing text" && isMounted) {
+              setOcrProgress(m.progress * 100);
+            }
+          });
+          
+          if (isMounted) {
+            setIsReady(true);
+            console.log("OCR worker initialized successfully");
           }
-        };
-        
-        // Create worker with proper options
-        workerRef.current = await createWorker({
-          logger: progressHandler
-        });
-        
-        // Workers now come pre-loaded with languages and pre-initialized
-        // No need to call loadLanguage or initialize
-
-        if (isMounted) {
-          setIsReady(true);
-          console.log("OCR worker initialized successfully");
         }
       } catch (error) {
         console.error("Failed to initialize OCR worker:", error);

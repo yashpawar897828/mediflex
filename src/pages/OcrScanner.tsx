@@ -1,7 +1,8 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScanText, ArrowRight, ClipboardList } from "lucide-react";
+import { ScanText, ArrowRight, ClipboardList, UserRound, Pill } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -9,19 +10,18 @@ import { useNavigate } from "react-router-dom";
 import WebcamCapture from "@/components/ocr/WebcamCapture";
 import ProcessingProgress from "@/components/ocr/ProcessingProgress";
 import ResultDisplay from "@/components/ocr/ResultDisplay";
-import ModeSelector from "@/components/ocr/ModeSelector";
 import { useOcr } from "@/hooks/useOcr";
 import { inventoryService, InventoryItem } from "@/services/InventoryService";
 import { distributorService } from "@/services/DistributorService";
-import { OrderReceiptData } from "@/types/distributors";
+import { OrderReceiptData, PatientRecipient, Medicine } from "@/types/distributors";
 
 const OcrScanner = () => {
   const [text, setText] = useState("");
-  const [mode, setMode] = useState<"store" | "retrieve" | "order">("store");
+  const [mode, setMode] = useState<"patient" | "order">("patient");
   const [isScanning, setIsScanning] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<InventoryItem[]>([]);
-  const [productData, setProductData] = useState<Partial<InventoryItem> | null>(null);
+  const [patientData, setPatientData] = useState<PatientRecipient | null>(null);
   const [orderData, setOrderData] = useState<OrderReceiptData | null>(null);
   const { isProcessing, ocrProgress, processImage, isReady } = useOcr();
   const navigate = useNavigate();
@@ -50,34 +50,27 @@ const OcrScanner = () => {
       if (result) {
         setText(result);
         
-        if (mode === "store") {
-          // Parse the OCR text to extract product information
-          const extractedData = inventoryService.parseOcrText(result);
-          setProductData(extractedData);
+        if (mode === "patient") {
+          // Parse the OCR text to extract patient and medicine information
+          const extractedData = inventoryService.parsePatientMedicines(result);
+          setPatientData(extractedData);
           setOrderData(null);
-          toast.success("Text extracted successfully! Review the data before saving.");
+          
+          if (extractedData.medicines.length > 0) {
+            toast.success(`Extracted ${extractedData.medicines.length} medicines for patient!`);
+          } else {
+            toast.info("Could not identify medicines in the document. Please check the scan quality.");
+          }
         } else if (mode === "order") {
-          // Parse the OCR text as an order receipt
+          // Parse the OCR text as an order receipt with enhanced fields
           const extractedOrderData = inventoryService.parseOrderReceipt(result);
           setOrderData(extractedOrderData);
-          setProductData(null);
+          setPatientData(null);
           
           if (extractedOrderData.products.length > 0) {
             toast.success(`Extracted ${extractedOrderData.products.length} products from receipt!`);
           } else {
             toast.info("Could not identify products in the receipt. Please check the scan quality.");
-          }
-        } else {
-          // Search the inventory with the extracted text
-          const results = inventoryService.searchInventory(result);
-          setSearchResults(results);
-          setProductData(null);
-          setOrderData(null);
-          
-          if (results.length > 0) {
-            toast.success(`Found ${results.length} matching products!`);
-          } else {
-            toast.info("No matching products found in inventory.");
           }
         }
       }
@@ -112,29 +105,31 @@ const OcrScanner = () => {
     }
   };
 
-  const handleSaveToInventory = () => {
-    if (!productData) {
-      toast.error("No product data to save");
+  const handleSavePatientMedicines = () => {
+    if (!patientData) {
+      toast.error("No patient data to save");
       return;
     }
     
-    // Ensure we have at least some basic data
-    if (!productData.name || !productData.batch) {
-      toast.error("Product must have at least a name and batch number");
+    if (patientData.medicines.length === 0) {
+      toast.error("No medicines found for patient");
       return;
     }
     
     try {
-      const savedItem = inventoryService.saveItem({
-        name: productData.name || "Unknown Product",
-        batch: productData.batch || "UNKNOWN",
-        expiry: productData.expiry || new Date().toISOString().split('T')[0],
-        price: productData.price || 0,
-        stock: productData.stock || 1
+      // Save each medicine to inventory
+      const savedItems = patientData.medicines.map(medicine => {
+        return inventoryService.saveItem({
+          name: medicine.name || "Unknown Medicine",
+          batch: medicine.batch || "UNKNOWN",
+          expiry: medicine.expiry || new Date().toISOString().split('T')[0],
+          price: medicine.price || 0,
+          stock: medicine.quantity || 1
+        });
       });
       
-      toast.success("Product saved to inventory!");
-      setProductData(null);
+      toast.success(`Saved ${savedItems.length} medicines to inventory!`);
+      setPatientData(null);
       setText("");
       setCapturedImage(null);
       
@@ -144,7 +139,7 @@ const OcrScanner = () => {
       }, 1500);
     } catch (error) {
       console.error("Error saving to inventory:", error);
-      toast.error("Failed to save product to inventory");
+      toast.error("Failed to save medicines to inventory");
     }
   };
 
@@ -190,7 +185,7 @@ const OcrScanner = () => {
     
     // Clear previous results when text changes
     setSearchResults([]);
-    setProductData(null);
+    setPatientData(null);
     setOrderData(null);
   };
 
@@ -205,7 +200,7 @@ const OcrScanner = () => {
         <CardHeader>
           <CardTitle>OCR Document Scanner</CardTitle>
           <CardDescription>
-            Scan documents to extract text or search for information
+            Scan documents to extract text or process order receipts
             {!isReady && <span className="ml-2 text-amber-500">(OCR engine initializing...)</span>}
           </CardDescription>
         </CardHeader>
@@ -213,24 +208,23 @@ const OcrScanner = () => {
           {/* Mode selector component */}
           <div className="flex space-x-2">
             <Button 
-              variant={mode === "store" ? "default" : "outline"} 
+              variant={mode === "patient" ? "default" : "outline"} 
               onClick={() => {
-                setMode("store");
-                setSearchResults([]);
-                setProductData(null);
+                setMode("patient");
+                setPatientData(null);
                 setOrderData(null);
               }}
               disabled={isProcessing}
               className="flex-1"
             >
-              Single Product
+              <UserRound className="mr-2 h-4 w-4" />
+              Patient Recipient
             </Button>
             <Button 
               variant={mode === "order" ? "default" : "outline"} 
               onClick={() => {
                 setMode("order");
-                setSearchResults([]);
-                setProductData(null);
+                setPatientData(null);
                 setOrderData(null);
               }}
               disabled={isProcessing}
@@ -238,19 +232,6 @@ const OcrScanner = () => {
             >
               <ClipboardList className="mr-2 h-4 w-4" />
               Order Receipt
-            </Button>
-            <Button 
-              variant={mode === "retrieve" ? "default" : "outline"} 
-              onClick={() => {
-                setMode("retrieve");
-                setSearchResults([]);
-                setProductData(null);
-                setOrderData(null);
-              }}
-              disabled={isProcessing}
-              className="flex-1"
-            >
-              Search
             </Button>
           </div>
 
@@ -280,57 +261,49 @@ const OcrScanner = () => {
             onCopyText={handleCopyToClipboard}
           />
 
-          {/* Search results display */}
-          {mode === "retrieve" && searchResults.length > 0 && (
+          {/* Extracted patient data display (in patient mode) */}
+          {mode === "patient" && patientData && (
             <div className="mt-4 border rounded-md p-4 bg-muted/20">
-              <h3 className="font-medium mb-2">Search Results:</h3>
-              <div className="space-y-2">
-                {searchResults.map((item) => (
-                  <div key={item.id} className="p-3 bg-background rounded-md border">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-medium">{item.name}</h4>
-                        <p className="text-sm text-muted-foreground">Batch: {item.batch}</p>
+              <h3 className="font-medium mb-2">Patient & Medicines Information:</h3>
+              <div className="mb-3">
+                <div className="text-sm font-medium">Patient Name:</div>
+                <div>{patientData.name || "Not detected"}</div>
+                
+                {patientData.contact && (
+                  <>
+                    <div className="text-sm font-medium mt-2">Contact:</div>
+                    <div>{patientData.contact}</div>
+                  </>
+                )}
+              </div>
+              
+              <h4 className="font-medium mt-4 mb-2">Medicines:</h4>
+              {patientData.medicines.length > 0 ? (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {patientData.medicines.map((medicine, index) => (
+                    <div key={index} className="p-2 bg-background rounded-md border">
+                      <div className="flex justify-between">
+                        <div className="flex items-center gap-1">
+                          <Pill className="h-4 w-4 text-green-500" />
+                          <span className="font-medium">{medicine.name}</span>
+                        </div>
+                        <span>${medicine.price?.toFixed(2) || "0.00"}</span>
                       </div>
-                      <div className="text-right">
-                        <p className="font-medium">${item.price.toFixed(2)}</p>
-                        <p className="text-sm text-muted-foreground">Stock: {item.stock}</p>
+                      <div className="grid grid-cols-2 text-sm text-muted-foreground">
+                        <div>Quantity: {medicine.quantity || 1}</div>
+                        {medicine.batch && <div>Batch: {medicine.batch}</div>}
                       </div>
+                      {medicine.expiry && (
+                        <div className="text-sm text-muted-foreground">
+                          Expiry: {new Date(medicine.expiry).toLocaleDateString()}
+                        </div>
+                      )}
                     </div>
-                    <div className="mt-2 text-sm">
-                      <p>Expiry: {new Date(item.expiry).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Extracted product data display (in store mode) */}
-          {mode === "store" && productData && (
-            <div className="mt-4 border rounded-md p-4 bg-muted/20">
-              <h3 className="font-medium mb-2">Extracted Product Information:</h3>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>
-                  <p className="font-medium">Product Name:</p>
-                  <p>{productData.name || "Not detected"}</p>
+                  ))}
                 </div>
-                <div>
-                  <p className="font-medium">Batch Number:</p>
-                  <p>{productData.batch || "Not detected"}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Expiry Date:</p>
-                  <p>{productData.expiry ? new Date(productData.expiry).toLocaleDateString() : "Not detected"}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Price:</p>
-                  <p>{productData.price ? `$${productData.price.toFixed(2)}` : "Not detected"}</p>
-                </div>
-              </div>
-              <div className="mt-3 text-muted-foreground text-xs">
-                <p>You can edit these details in the inventory after saving</p>
-              </div>
+              ) : (
+                <p className="text-muted-foreground">No medicines detected</p>
+              )}
             </div>
           )}
 
@@ -369,25 +342,27 @@ const OcrScanner = () => {
                         <span className="font-medium">{product.name}</span>
                         <span>${product.price?.toFixed(2) || "0.00"}</span>
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        Quantity: {product.quantity || 1}
+                      <div className="grid grid-cols-2 text-sm text-muted-foreground">
+                        <div>Quantity: {product.quantity || 1}</div>
+                        {product.batch && <div>Batch: {product.batch}</div>}
                       </div>
+                      {product.expiry && (
+                        <div className="text-sm text-muted-foreground">
+                          Expiry: {new Date(product.expiry).toLocaleDateString()}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               ) : (
                 <p className="text-muted-foreground">No products detected in receipt</p>
               )}
-              
-              <div className="mt-3 text-muted-foreground text-xs">
-                <p>Products will be added to both distributor records and inventory</p>
-              </div>
             </div>
           )}
 
           <div className="flex justify-end gap-2">
-            {mode === "store" && productData && (
-              <Button onClick={handleSaveToInventory}>
+            {mode === "patient" && patientData && patientData.medicines.length > 0 && (
+              <Button onClick={handleSavePatientMedicines}>
                 Save to Inventory
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -412,11 +387,9 @@ const OcrScanner = () => {
                 ? "Processing..." 
                 : !isReady
                   ? "Initializing OCR..." 
-                  : mode === "store" 
-                    ? "Extract Data" 
-                    : mode === "order" 
-                      ? "Extract Order Data" 
-                      : "Search Inventory"}
+                  : mode === "patient" 
+                    ? "Extract Patient Data" 
+                    : "Extract Order Data"}
             </Button>
           </div>
         </CardContent>

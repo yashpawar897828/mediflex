@@ -6,6 +6,8 @@ export interface DistributionProduct {
   quantity: number;
   price: number;
   receiptId?: string; // Reference to the receipt that added this product
+  batchNumber?: string; // Added batch number
+  expiryDate?: string; // Added expiry date
 }
 
 export interface Distributor {
@@ -16,7 +18,22 @@ export interface Distributor {
   products: DistributionProduct[];
 }
 
-// New interface for extracted receipt data
+export interface Medicine {
+  name: string;
+  quantity: number;
+  price: number;
+  batch?: string;
+  expiry?: string;
+}
+
+export interface PatientRecipient {
+  name: string;
+  id?: string;
+  contact?: string;
+  medicines: Medicine[];
+}
+
+// Enhanced interface for extracted receipt data
 export interface OrderReceiptData {
   distributorName?: string;
   distributorContact?: string;
@@ -27,6 +44,7 @@ export interface OrderReceiptData {
     quantity: number;
     price: number;
     batch?: string;
+    expiry?: string; // Added expiry date
   }>;
   date: string;
 }
